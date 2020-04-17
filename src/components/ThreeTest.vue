@@ -26,6 +26,7 @@
   import { Mobject } from  "../Mobject.js";
   import { Scene, SingleStringTexMobject } from  "../manim.js";
   import EditorControls from  "./EditorControls.vue";
+  import * as fs from "fs";
 
   import { codemirror } from 'vue-codemirror'
   import 'codemirror/lib/codemirror.css'
@@ -41,7 +42,8 @@
     },
     data() {
       return {
-        project: "example_scenes",
+        projectDir: "/home/devneal/github/manim/default-project",
+        projectFile: "example_scenes.py",
         code: "",
         sceneChoices: [],
         chosenScene: "",
@@ -68,19 +70,12 @@
       this.mobjectDict = {};
     },
     mounted() {
-      // Pyodide
-      window.languagePluginLoader.then(() => {
-        window.pyodide.loadPackage("manimlib").then(() => {
-          window.pyodide.runPython("import manimlib");
-          window.pyodide.runPython("import numpy");
-        }).then(() => {
-          this.loadCode().then(() => {
-            this.refreshSceneChoices();
-          }).catch(error => {
-            // eslint-disable-next-line
-            console.error(error);
-          });
-        });
+      fs.readFile(path.join(this.projectDir, this.projectFile), "utf8", (err, data) => {
+        if (err) {
+          console.error(err);
+        } else {
+          this.code = data;
+        }
       });
 
       // A global function for generating tex from python.
