@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { MeshLine, MeshLineMaterial } from "three.meshline";
+import { MeshLine, MeshLineMaterial } from "threejs-meshline";
 import { BufferGeometryUtils } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { MobjectFillBufferGeometry } from "./MobjectFillBufferGeometry.js";
 
@@ -11,7 +11,7 @@ const DEFAULT_STYLE = {
   strokeWidth: 4,
 };
 
-const STROKE_SHRINK_FACTOR = 700;
+const STROKE_SHRINK_FACTOR = 80;
 
 class Mobject extends THREE.Group {
   constructor(id, points, style) {
@@ -94,19 +94,21 @@ class Mobject extends THREE.Group {
   }
 
   createMeshLineGeometries(shape) {
-    let extractedPoints = shape.extractPoints();
     let meshLineGeometries = [];
+    let extractedPoints = shape.extractPoints();
     for (let vecList of [extractedPoints.shape, ...extractedPoints.holes]) {
-      let geometry = new THREE.Geometry();
+      let meshLine = new MeshLine();
+      let vertices = [];
       for (let i = 0; i < vecList.length; i++) {
         let point = vecList[i];
-        geometry.vertices.push(new THREE.Vector3(point.x, point.y, 0));
+        vertices.push(new THREE.Vector3(point.x, point.y, 0));
       }
-      let meshLine = new MeshLine();
-      meshLine.setGeometry(geometry);
-      meshLineGeometries.push(meshLine.geometry);
+      meshLine.setVertices(vertices);
+      meshLineGeometries.push(meshLine);
     }
-    let fullGeometry = BufferGeometryUtils.mergeBufferGeometries(meshLineGeometries);
+    let fullGeometry = BufferGeometryUtils.mergeBufferGeometries(
+      meshLineGeometries
+    );
     return fullGeometry;
   }
 

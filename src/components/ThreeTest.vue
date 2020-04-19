@@ -21,12 +21,12 @@
 <script>
   import * as THREE from "three";
   import * as consts from "../constants.js";
-  import axios from "axios";
   import path from "path";
   import { Mobject } from  "../Mobject.js";
   import { Scene, SingleStringTexMobject } from  "../manim.js";
   import EditorControls from  "./EditorControls.vue";
   import * as fs from "fs";
+  import { ManimInterface } from "../ManimInterface.js";
 
   import { codemirror } from 'vue-codemirror'
   import 'codemirror/lib/codemirror.css'
@@ -42,8 +42,6 @@
     },
     data() {
       return {
-        projectDir: "/home/devneal/github/manim/default-project",
-        projectFile: "example_scenes.py",
         code: "",
         sceneChoices: [],
         chosenScene: "",
@@ -68,14 +66,26 @@
       // Maps Mobject IDs from Python to their respective Mobjects in
       // Javascript.
       this.mobjectDict = {};
+
+      this.projectDirectory = "/home/devneal/github/manim";
+      this.projectFileName = "example_scenes.py";
+      this.manimPath = "/home/devneal/github/manim/manim.py";
+      this.manimConfig = {
+        python: {
+          pythonPath: '/home/devneal/.virtualenvs/manimenv/bin/python',
+          pythonOptions: ['-u'],
+        },
+        manim: {},
+      };
+      this.manimInterface = null;
     },
     mounted() {
-      fs.readFile(path.join(this.projectDir, this.projectFile), "utf8", (err, data) => {
-        if (err) {
-          console.error(err);
-        } else {
-          this.code = data;
-        }
+      this.loadCode().then(code => {
+        this.code = code;
+        return this.manimInterface.getSceneChoices(this.projectFilePath);
+      }).then(sceneChoices => {
+        this.sceneChoices = sceneChoices;
+        this.chosenScene = this.sceneChoices[0];
       });
 
       // A global function for generating tex from python.
@@ -114,41 +124,36 @@
         this.rendererHeight,
         false,
       );
+
+      this.manimInterface = new ManimInterface(this.manimPath, this.manimConfig);
     },
     computed: {
       sceneWidth() { return this.sceneHeight * this.aspectRatio; },
       rendererWidth() { return this.rendererHeight * this.aspectRatio; },
-      fpsInterval() { return consts.MS_PER_SECOND / this.fps; }
+      fpsInterval() { return consts.MS_PER_SECOND / this.fps; },
+      projectFilePath() {
+        return path.join(this.projectDirectory, this.projectFileName);
+      },
     },
     methods: {
       loadCode() {
-        let codePath = path.join(
-          consts.SCENE_DATA_DIR,
-          this.$route.params.project || this.project,
-          consts.CODE_NAME,
+        return fs.promises.readFile(
+          path.join(this.projectDirectory, this.projectFileName),
+          { encoding: "utf8" },
         );
-        return axios.get(codePath).then(response => {
-          this.code = response.data;
-        }).catch(error => {
-          // eslint-disable-next-line
-          console.error(error);
-        });
       },
       refreshSceneChoices() {
-        let manimlib = window.pyodide.pyimport("manimlib")
-        this.sceneChoices = manimlib.get_scene_choices(this.code);
-        if (this.chosenScene.length === 0) {
-          this.chosenScene = this.sceneChoices[0];
-        }
-        manimlib.destroy();
+        this.manimInterface
+          .getSceneChoices(this.projectFilePath)
+          .then(sceneChoices => this.sceneChoices = sceneChoices);
       },
       runManim() {
-        let manimlib = window.pyodide.pyimport("manimlib");
-        let scene = manimlib.get_scene(this.code, [this.chosenScene]);
-        scene.render();
-        this.frameData = scene.camera.frame_data;
-        this.animateFrameData();
-        manimlib.destroy();
+        this.manimInterface
+          .getFrameData(this.projectFilePath, this.chosenScene)
+          .then(frameData => {
+            this.frameData = frameData;
+            this.animateFrameData();
+          });
       },
       animateFrameData() {
         let lastFrameTimestamp = window.performance.now();
