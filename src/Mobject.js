@@ -1,7 +1,9 @@
 import * as THREE from "three";
 import { MeshLine, MeshLineMaterial } from "threejs-meshline";
 import { BufferGeometryUtils } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { ShapeUtils } from "three/src/extras/ShapeUtils.js";
 import { MobjectFillBufferGeometry } from "./MobjectFillBufferGeometry.js";
+import * as utils from "./utils";
 
 const DEFAULT_STYLE = {
   strokeColor: 0xffffff,
@@ -60,17 +62,20 @@ class Mobject extends THREE.Group {
   }
 
   computeShapes(points) {
-    let shapePath = new THREE.ShapePath();
+    let shapes = [];
+    let holes = [];
+    let path;
     let move = true;
     for (let i = 0; i < points.length / 4; i++) {
       let curveStartIndex = 4 * i;
       if (move) {
-        shapePath.moveTo(
+        path = new THREE.Path();
+        path.moveTo(
           points[curveStartIndex][0],
           points[curveStartIndex][1],
         );
       }
-      shapePath.bezierCurveTo(
+      path.bezierCurveTo(
         points[curveStartIndex + 1][0],
         points[curveStartIndex + 1][1],
         points[curveStartIndex + 2][0],
@@ -78,19 +83,60 @@ class Mobject extends THREE.Group {
         points[curveStartIndex + 3][0],
         points[curveStartIndex + 3][1],
       );
-      if (curveStartIndex + 4 < points.length) {
-        move = false;
+
+      move = curveStartIndex + 4 === points.length;
+      if (!move) {
         let lastPoint = points[curveStartIndex + 3];
         let nextPoint = points[curveStartIndex + 4];
-        for (let j = 0; j < 3; j++) {
-          if (Math.abs(lastPoint[j] - nextPoint[j]) > 1e-6) {
-            move = true;
-            break;
+        move = !utils.allClose(lastPoint, nextPoint);
+      }
+      if (move) {
+        // Clockwise Paths and lines are considered holes.
+        let isClockWise = ShapeUtils.area(path.getPoints()) < 1e-6;
+        if (isClockWise) {
+          // Assume path is a hole.
+          let holeWasAdded = false;
+          for (let i = shapes.length - 1; i >= 0; i--) {
+            let shape = shapes[i];
+            let shapeContainsHole = utils.isPointInsidePolygon(
+              path.getPoint(0),
+              shape.getPoints(),
+            );
+            if (shapeContainsHole) {
+              shape.holes.push(path);
+              holeWasAdded = true;
+              break;
+            }
           }
+          if (!holeWasAdded) {
+            holes.push(path);
+          }
+        } else {
+          // Assume path is a shape.
+          let shape = new THREE.Shape();
+          for (let i = holes.length - 1; i >= 0; i--) {
+            let hole = holes[i];
+            let shapeContainsHole = utils.isPointInsidePolygon(
+              hole.getPoint(0),
+              path.getPoints(),
+            );
+            if (shapeContainsHole) {
+              shape.holes.push(hole);
+              holes.splice(i, 1);
+            }
+          }
+          shape.curves.push(...path.curves);
+          shapes.push(shape);
         }
       }
     }
-    return shapePath.toShapes();
+    // Any unused holes are treated as Shapes.
+    for (let hole of holes) {
+      let shape = new THREE.Shape();
+      shape.curves.push(...hole.curves);
+      shapes.push(shape);
+    }
+    return shapes;
   }
 
   createMeshLineGeometries(shape) {

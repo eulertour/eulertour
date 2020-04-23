@@ -21,12 +21,11 @@
 <script>
   import * as THREE from "three";
   import * as consts from "../constants.js";
-  import path from "path";
-  import { Mobject } from  "../Mobject.js";
-  import { Scene, SingleStringTexMobject } from  "../manim.js";
-  import EditorControls from  "./EditorControls.vue";
   import * as fs from "fs";
+  import EditorControls from  "./EditorControls.vue";
+  import path from "path";
   import { ManimInterface } from "../ManimInterface.js";
+  import { Mobject } from  "../Mobject.js";
 
   import { codemirror } from 'vue-codemirror'
   import 'codemirror/lib/codemirror.css'
@@ -75,7 +74,10 @@
           pythonPath: '/home/devneal/.virtualenvs/manimenv/bin/python',
           pythonOptions: ['-u'],
         },
-        manim: {},
+        manim: {
+          pixelHeight: this.rendererHeight,
+          pixelWidth: this.rendererWidth,
+        },
       };
       this.manimInterface = null;
     },
@@ -87,18 +89,6 @@
         this.sceneChoices = sceneChoices;
         this.chosenScene = this.sceneChoices[0];
       });
-
-      // A global function for generating tex from python.
-      this.twoScene = new Scene({
-        width: this.sceneWidth,
-        height: this.sceneHeight,
-      });
-      window.tex_to_points = tex => SingleStringTexMobject.texToPoints(
-        tex,
-        this.twoScene,
-        /*dumpToFile=*/false,
-        /*includeCommands=*/true,
-      );
 
       // Scene
       this.scene = new THREE.Scene();
@@ -120,12 +110,15 @@
         antialias: true,
       });
       this.renderer.setSize(
-        this.rendererHeight * this.aspectRatio,
+        this.rendererWidth,
         this.rendererHeight,
         false,
       );
 
-      this.manimInterface = new ManimInterface(this.manimPath, this.manimConfig);
+      this.manimInterface = new ManimInterface(
+        this.manimPath,
+        this.manimConfig,
+      );
     },
     computed: {
       sceneWidth() { return this.sceneHeight * this.aspectRatio; },

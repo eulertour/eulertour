@@ -850,9 +850,9 @@
     cssnano-preset-default "^4.0.0"
     postcss "^7.0.0"
 
-"@jonobr1/two.js@https://github.com/jonobr1/two.js/":
+"@jonobr1/two.js@https://github.com/jonobr1/two.js":
   version "0.8.0-dev"
-  resolved "https://github.com/jonobr1/two.js/#76abd88e2413115a8646d35a05e1cc771ab8fbd6"
+  resolved "https://github.com/jonobr1/two.js#08c07abf9d0e58b271119a7c041a7bcde11ad26b"
 
 "@mrmlnc/readdir-enhanced@^2.2.1":
   version "2.2.1"
@@ -8886,10 +8886,6 @@ thread-loader@^2.1.3:
     loader-runner "^2.3.1"
     loader-utils "^1.1.0"
     neo-async "^2.6.0"
-
-"three.meshline@https://github.com/spite/THREE.MeshLine":
-  version "1.2.0"
-  resolved "https://github.com/spite/THREE.MeshLine#565dc97b36c742120936555c3b0eeb9653202e03"
 
 three@^0.115.0:
   version "0.115.0"

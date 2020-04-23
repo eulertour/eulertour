@@ -3,6 +3,7 @@ import * as _ from 'lodash'
 import chroma from 'chroma-js'
 import * as math from 'mathjs'
 import * as consts from './constants.js'
+import { SingleStringTexMobject, TexSymbol } from  "./manim.js";
 
 export function pathFromAnchors(anchors, leftHandles, rightHandles, commands=null) {
   // eslint-disable-next-line
@@ -123,6 +124,16 @@ export function getManimPoints(mobject) {
     let curV = mobject.children[0].vertices[i];
     let nextV = mobject.children[0].vertices[i + 1];
     if (nextV.command === "M") continue;
+    // utils.convertSVGGroup() converts Z commands into C commands, effectively
+    // closing all paths manually. SVGs may close a path manually (with, for
+    // example, an L command) then add a Z command for good measure, in which
+    // case utils.convertSVGGroup() will output a C command that doesn't go
+    // anywhere. These commands should be filtered.
+    let xVerticesEqual = Math.abs(curV.x - nextV.x) < 1e-6;
+    let yVerticesEqual = Math.abs(curV.y - nextV.y) < 1e-6;
+    if (xVerticesEqual && yVerticesEqual) {
+      continue;
+    }
     points.push([curV.x, curV.y, 0]);
     points.push([curV.controls.right.x, curV.controls.right.y, 0]);
     points.push([nextV.controls.left.x, nextV.controls.left.y, 0]);
@@ -463,15 +474,15 @@ export function splitBezier(points, alpha, /* fromStart=true */) {
 }
 
 export function convertSVGGroup(svgGroup) {
-  // Convert all paths (e.g. Two.Rectangles) to Two.Path
+  // Convert all paths (e.g. Two.Rectangles) to Two.Path.
   for (let path of extractPathsFromGroup(svgGroup)) {
-    let parent = path.parent;
-    let newPath = Two.Path.prototype.clone.call(path);
-    parent.remove(path);
-    parent.add(newPath);
+    if (path.constructor.name !== 'Path') {
+      Two.Path.prototype.clone.call(path, path.parent);
+      path.parent.remove(path);
+    }
   }
 
-  // Convert anchors to absolute coordinates
+  // Convert anchors to absolute coordinates.
   for (let path of extractPathsFromGroup(svgGroup)) {
     for (let v of path.vertices) {
       v.controls.left.add(v);
@@ -480,7 +491,7 @@ export function convertSVGGroup(svgGroup) {
     }
   }
 
-  // Convert all commands to C (and M)
+  // Convert all commands to C and M.
   for (let path of extractPathsFromGroup(svgGroup)) {
     if (path.vertices.length === 0) {
       continue;
@@ -514,7 +525,6 @@ export function convertSVGGroup(svgGroup) {
           .lerp(currentVertex, 2 / 3);
         currentVertex.command = "C";
       } else {
-        // eslint-disable-next-line
         console.error(
           "Encountered an unknown SVG command",
           currentVertex.command
@@ -903,4 +913,114 @@ export function getSceneConversionMatrix(
     [0, destHeight / sourceHeight, 0],
     [0, 0, 1],
   ]);
+}
+
+// From https://stackoverflow.com/a/35385518/3753494.
+export function htmlToElement(html) {
+  let template = document.createElement('template');
+  html = html.trim(); // Never return a text node of whitespace as the result
+  template.innerHTML = html;
+  return template.content.firstChild;
+}
+
+export function htmlToElements(html) {
+    var template = document.createElement('template');
+    template.innerHTML = html;
+    return template.content.childNodes;
+}
+
+export function isPointInsidePolygon(inPt, inPolygon) {
+
+  var polyLen = inPolygon.length;
+
+  // inPt on polygon contour => immediate success    or
+  // toggling of inside/outside at every single! intersection point of an edge
+  //  with the horizontal line through inPt, left of inPt
+  //  not counting lowerY endpoints of edges and whole edges on that line
+  var inside = false;
+  for ( var p = polyLen - 1, q = 0; q < polyLen; p = q ++ ) {
+
+    var edgeLowPt = inPolygon[ p ];
+    var edgeHighPt = inPolygon[ q ];
+
+    var edgeDx = edgeHighPt.x - edgeLowPt.x;
+    var edgeDy = edgeHighPt.y - edgeLowPt.y;
+
+    if ( Math.abs( edgeDy ) > Number.EPSILON ) {
+
+      // not parallel
+      if ( edgeDy < 0 ) {
+
+        edgeLowPt = inPolygon[ q ]; edgeDx = - edgeDx;
+        edgeHighPt = inPolygon[ p ]; edgeDy = - edgeDy;
+
+      }
+      if ( ( inPt.y < edgeLowPt.y ) || ( inPt.y > edgeHighPt.y ) ) 		continue;
+
+      if ( inPt.y === edgeLowPt.y ) {
+
+        if ( inPt.x === edgeLowPt.x )		return	true;		// inPt is on contour ?
+        // continue;				// no intersection or edgeLowPt => doesn't count !!!
+
+      } else {
+
+        var perpEdge = edgeDy * ( inPt.x - edgeLowPt.x ) - edgeDx * ( inPt.y - edgeLowPt.y );
+        if ( perpEdge === 0 )				return	true;		// inPt is on contour ?
+        if ( perpEdge < 0 ) 				continue;
+        inside = ! inside;		// true intersection left of inPt
+
+      }
+
+    } else {
+
+      // parallel or collinear
+      if ( inPt.y !== edgeLowPt.y ) 		continue;			// parallel
+      // edge lies on the same horizontal line as inPt
+      if ( ( ( edgeHighPt.x <= inPt.x ) && ( inPt.x <= edgeLowPt.x ) ) ||
+         ( ( edgeLowPt.x <= inPt.x ) && ( inPt.x <= edgeHighPt.x ) ) )		return	true;	// inPt: Point on contour !
+      // continue;
+
+    }
+
+  }
+
+  return	inside;
+
+}
+
+export function svgStringToPoints(svgString) {
+  let svgNode = htmlToElements(svgString)[4];
+  console.assert(svgNode.localName === 'svg');
+
+  let svgGroup = this.two.interpret(
+    svgNode,
+    /*shallow=*/true,
+    /*add=*/false,
+  );
+  convertSVGGroup(svgGroup);
+  let group = normalizeGroup(svgGroup);
+  let texSymbols = group.children.map(path => new TexSymbol(path.clone(), {}));
+  let mob = new SingleStringTexMobject("", texSymbols, {});
+  mob.translateMobject([0, 2.5]);
+  mob.scaleMobject(0.5);
+  // Scale and position the Mobject here.
+  let points = mob.submobjects().map(texSymbol => getManimPoints(texSymbol));
+  console.log(points);
+
+  // let mobMesh = new Mobject(1, points[0], {});
+  // this.scene.add(mobMesh);
+  // this.renderer.render(this.scene, this.camera);
+}
+
+export function allClose(arr1, arr2) {
+  console.assert(
+    arr1.length === arr2.length,
+    "Called allClose() on arrays of different lengths",
+  );
+  for (let j = 0; j < arr1.length; j++) {
+    if (Math.abs(arr1[j] - arr2[j]) > 1e-6) {
+      return false;
+    }
+  }
+  return true;
 }
