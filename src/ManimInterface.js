@@ -2,8 +2,7 @@ import { PythonShell } from "python-shell";
 import * as utils from "./utils";
 
 class ManimInterface {
-  constructor(manimPath, config) {
-    this.manimPath = manimPath;
+  constructor(config) {
     this.config = config;
   }
 
@@ -11,7 +10,7 @@ class ManimInterface {
     return new Promise(resolve => {
       let frameData = [];
       this.manim = new PythonShell(
-        this.manimPath,
+        this.config.manim.manimPath,
         Object.assign(
           this.config.python,
           {
@@ -51,7 +50,7 @@ class ManimInterface {
     return new Promise(resolve => {
       let choices = [];
       new PythonShell(
-        this.manimPath,
+        this.config.manim.manimPath,
         Object.assign(
           this.config.python,
           { args: [filePath, "--display_scenes"] },

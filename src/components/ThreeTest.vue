@@ -68,13 +68,14 @@
 
       this.projectDirectory = "/home/devneal/github/manim";
       this.projectFileName = "example_scenes.py";
-      this.manimPath = "/home/devneal/github/manim/manim.py";
+
       this.manimConfig = {
         python: {
           pythonPath: '/home/devneal/.virtualenvs/manimenv/bin/python',
           pythonOptions: ['-u'],
         },
         manim: {
+          manimPath: "/home/devneal/github/manim/manim.py",
           pixelHeight: this.rendererHeight,
           pixelWidth: this.rendererWidth,
         },
@@ -115,10 +116,7 @@
         false,
       );
 
-      this.manimInterface = new ManimInterface(
-        this.manimPath,
-        this.manimConfig,
-      );
+      this.manimInterface = new ManimInterface(this.manimConfig);
     },
     computed: {
       sceneWidth() { return this.sceneHeight * this.aspectRatio; },
