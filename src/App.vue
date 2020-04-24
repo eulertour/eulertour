@@ -20,7 +20,7 @@
       <v-btn
         text
         height="100%"
-        href="https://github.com/eulertour/eulerv2"
+        href="https://github.com/eulertour/eulertour"
         target="_blank"
       >
         <v-icon class="display-2">mdi-github</v-icon>
