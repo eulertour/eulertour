@@ -167,6 +167,7 @@ export const BASE_LAB_URL = "/lab";
 export const BASE_INFO_URL = "/info";
 export const BASE_DOCUMENTATION_URL = "/docs";
 export const THREE_TEST_URL = "/three";
+export const CONFIG_URL = "/config";
 
 export const SCENE_DATA_DIR = "/scene_data";
 export const CODE_NAME = "code.py";

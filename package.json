@@ -17,6 +17,7 @@
     "axios": "^0.19.2",
     "chroma-js": "^2.1.0",
     "core-js": "^3.6.4",
+    "electron-store": "^5.1.1",
     "mathjs": "^6.6.4",
     "python-shell": "^1.0.8",
     "three": "^0.115.0",

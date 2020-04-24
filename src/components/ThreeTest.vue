@@ -32,6 +32,7 @@
   import 'codemirror/lib/codemirror.css'
   import 'codemirror/theme/rubyblue.css'
   import 'codemirror/mode/python/python.js'
+  const Store = require('electron-store');
 
   export default {
     name: "ThreeTest",
@@ -81,8 +82,13 @@
         },
       };
       this.manimInterface = null;
+      this.store = new Store();
     },
     mounted() {
+      if (this.store.get('paths.manimPath', "") === "") {
+        this.$router.push(consts.CONFIG_URL);
+      }
+
       this.loadCode().then(code => {
         this.code = code;
         return this.manimInterface.getSceneChoices(this.projectFilePath);
