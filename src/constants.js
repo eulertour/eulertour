@@ -162,6 +162,18 @@ export const MobjectLabContainerLayout = {
   HORIZONTAL_EMBED: 'horizontal_embed',
 };
 
+export const STORAGE_SCHEMA = {
+  "paths": {
+    "type": "object",
+    "properties": {
+      "manim": { "type": "string" },
+      "python": { "type": "string" },
+      "workspace": { "type": "string" },
+    }
+  }
+};
+
+export const ROOT_URL = "/";
 export const BASE_GALLERY_URL = "/gallery";
 export const BASE_LAB_URL = "/lab";
 export const BASE_INFO_URL = "/info";

@@ -26,13 +26,13 @@
   import path from "path";
   import { ManimInterface } from "../ManimInterface.js";
   import { Mobject } from  "../Mobject.js";
+  const Store = require('electron-store');
 
   import { codemirror } from 'vue-codemirror'
   import 'codemirror/lib/codemirror.css'
   import 'codemirror/lib/codemirror.css'
   import 'codemirror/theme/rubyblue.css'
   import 'codemirror/mode/python/python.js'
-  const Store = require('electron-store');
 
   export default {
     name: "ThreeTest",
@@ -67,8 +67,9 @@
       // Javascript.
       this.mobjectDict = {};
 
-      this.projectDirectory = "/home/devneal/github/manim";
-      this.projectFileName = "example_scenes.py";
+      this.workspacePath = "";
+      this.projectDirectory = "default";
+      this.filepath = "example_scenes.py";
 
       this.manimConfig = {
         python: {
@@ -82,11 +83,16 @@
         },
       };
       this.manimInterface = null;
-      this.store = new Store();
+      this.store = new Store({ schema: consts.STORAGE_SCHEMA });
     },
     mounted() {
-      if (this.store.get('paths.manimPath', "") === "") {
+      let paths = this.store.get('paths', null);
+      if (paths === null) {
         this.$router.push(consts.CONFIG_URL);
+      } else {
+        this.manimConfig.manim.manimPath = paths.manim;
+        this.manimConfig.python.pythonPath = paths.python;
+        this.workspacePath = paths.workspace;
       }
 
       this.loadCode().then(code => {
@@ -129,13 +135,17 @@
       rendererWidth() { return this.rendererHeight * this.aspectRatio; },
       fpsInterval() { return consts.MS_PER_SECOND / this.fps; },
       projectFilePath() {
-        return path.join(this.projectDirectory, this.projectFileName);
+        return path.join(
+          this.workspacePath,
+          this.projectDirectory,
+          this.filepath,
+        );
       },
     },
     methods: {
       loadCode() {
         return fs.promises.readFile(
-          path.join(this.projectDirectory, this.projectFileName),
+          path.join(this.workspacePath, this.projectDirectory, this.filepath),
           { encoding: "utf8" },
         );
       },
