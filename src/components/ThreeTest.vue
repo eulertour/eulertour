@@ -1,6 +1,25 @@
 <template>
   <div class="d-flex full-width mt-2 mx-2">
     <div class="d-flex mr-2 flex-column full-width">
+      <v-card class="d-flex align-center justify-space-between mb-2 px-3" height="50px">
+        <div>
+          <span class="headline mr-1">{{ projectDirectory }}</span>
+          <span>/{{ filepath }}</span>
+        </div>
+        <div>
+          <span
+            v-bind:style="{ display: displaySaveMessage ? 'initial' : 'none' }"
+            class="mr-1"
+          >saved</span>
+          <v-icon
+            color="primary"
+            @click="quickSave"
+            :disabled="saving"
+          >
+            mdi-content-save
+          </v-icon>
+        </div>
+      </v-card>
       <codemirror
         v-model="code"
         v-bind:options="{ mode: 'python', theme: 'rubyblue' }"
@@ -30,7 +49,6 @@
 
   import { codemirror } from 'vue-codemirror'
   import 'codemirror/lib/codemirror.css'
-  import 'codemirror/lib/codemirror.css'
   import 'codemirror/theme/rubyblue.css'
   import 'codemirror/mode/python/python.js'
 
@@ -45,6 +63,8 @@
         code: "",
         sceneChoices: [],
         chosenScene: "",
+        saving: false,
+        displaySaveMessage: false,
       };
     },
     created() {
@@ -142,11 +162,29 @@
         );
       },
     },
+    watch: {
+      saving(saveStatus) {
+        if (!saveStatus) {
+          this.displaySaveMessage = true;
+        }
+      },
+      code() { this.displaySaveMessage = false; }
+    },
     methods: {
       loadCode() {
         return fs.promises.readFile(
-          path.join(this.workspacePath, this.projectDirectory, this.filepath),
+          this.projectFilePath,
           { encoding: "utf8" },
+        );
+      },
+      quickSave() {
+        if (this.saving) return;
+        this.saving = true;
+        fs.writeFile(
+          this.projectFilePath,
+          this.code,
+          { encoding: "utf8" },
+          () => { this.saving = false },
         );
       },
       refreshSceneChoices() {

@@ -19,8 +19,9 @@
       large
       min-height="48"
       v-on:click="$emit('run-manim')"
+      color="primary"
     >
-      <v-icon class="headline black--text mr-2">mdi-cube-outline</v-icon>
+      <v-icon class="headline white--text mr-2">mdi-cube-outline</v-icon>
       <span class="title">Run</span>
     </v-btn>
   </div>
