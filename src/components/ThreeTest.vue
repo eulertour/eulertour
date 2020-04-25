@@ -3,7 +3,7 @@
     <div class="d-flex mr-2 flex-column full-width">
       <v-card class="d-flex align-center justify-space-between mb-2 px-3" height="50px">
         <div>
-          <span class="headline mr-1">{{ projectDirectory }}</span>
+          <span class="headline mr-1">{{ selectedProject }}</span>
           <span>/{{ filepath }}</span>
         </div>
         <div>
