@@ -19,6 +19,7 @@
     "core-js": "^3.6.4",
     "electron-store": "^5.1.1",
     "mathjs": "^6.6.4",
+    "ncp": "^2.0.0",
     "python-shell": "^1.0.8",
     "three": "^0.115.0",
     "threejs-meshline": "^2.0.10",

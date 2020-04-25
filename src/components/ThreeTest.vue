@@ -9,7 +9,7 @@
         <div>
           <span
             v-bind:style="{ display: displaySaveMessage ? 'initial' : 'none' }"
-            class="mr-1"
+            class="mr-1 grey--text text--darken-1"
           >saved</span>
           <v-icon
             color="primary"
@@ -88,7 +88,8 @@
       this.mobjectDict = {};
 
       this.workspacePath = "";
-      this.projectDirectory = "default";
+      this.projectDirectory = "projects";
+      this.selectedProject = "default";
       this.filepath = "example_scenes.py";
 
       this.manimConfig = {
@@ -158,6 +159,7 @@
         return path.join(
           this.workspacePath,
           this.projectDirectory,
+          this.selectedProject,
           this.filepath,
         );
       },

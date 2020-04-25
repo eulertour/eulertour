@@ -45,7 +45,10 @@
 </template>
 
 <script>
+  /* global __static */
   import * as consts from "../constants.js";
+  import * as ncp from "ncp";
+  import * as path from "path";
   import FilePicker from "./FilePicker.vue";
   const Store = require('electron-store');
 
@@ -115,8 +118,19 @@
         this.store.set('paths.manim', this.manimPath);
         this.store.set('paths.python', this.pythonPath);
         this.store.set('paths.workspace', this.workspacePath);
-        // Set up a default project here.
-        this.$router.push(consts.ROOT_URL);
+
+        ncp(
+          path.join(__static, "projects"),
+          path.join(this.workspacePath, "projects"),
+          { clobber: false },
+          err => {
+            if (err && err !== 'EEXIST') {
+              console.error(err);
+            } else {
+              this.$router.push(consts.ROOT_URL);
+            }
+          },
+        );
       }
     },
   }
