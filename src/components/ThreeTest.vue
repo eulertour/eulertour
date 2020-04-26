@@ -1,29 +1,43 @@
 <template>
   <div class="d-flex full-width mt-2 mx-2">
     <div class="d-flex mr-2 flex-column full-width">
-      <v-card class="d-flex align-center justify-space-between mb-2 px-3" height="50px">
-        <div>
-          <span class="headline mr-1">{{ selectedProject }}</span>
-          <span>/{{ filepath }}</span>
-        </div>
-        <div>
-          <span
-            v-bind:style="{ display: displaySaveMessage ? 'initial' : 'none' }"
-            class="mr-1 grey--text text--darken-1"
-          >saved</span>
-          <v-icon
-            color="primary"
-            @click="quickSave"
-            :disabled="saving"
-          >
-            mdi-content-save
-          </v-icon>
-        </div>
-      </v-card>
-      <codemirror
-        v-model="code"
-        v-bind:options="{ mode: 'python', theme: 'rubyblue' }"
-      />
+      <div class="d-flex mb-2 full-width">
+        <v-btn @click="toggleFileTree" class="full-height d-flex justify-center align-center mr-2 px-2">
+          <v-icon color="primary">mdi-file-tree</v-icon>
+        </v-btn>
+        <v-card class="d-flex align-center flex-grow-1 justify-space-between px-3" height="50px">
+          <div>
+            <span class="headline mr-1">{{ selectedProject }}</span>
+            <span>/{{ filepath }}</span>
+          </div>
+          <div>
+            <span
+              v-bind:class="{ 'display-none': !displaySaveMessage }"
+              class="mr-1 grey--text text--darken-1"
+            >
+              saved
+            </span>
+            <v-icon color="primary" @click="quickSave" :disabled="saving">
+              mdi-content-save
+            </v-icon>
+          </div>
+        </v-card>
+      </div>
+      <div class="d-flex full-width full-height">
+        <v-card
+          v-bind:class="{ 'display-none': !displayFileTree }"
+          class="full-height mr-2"
+          style="flex-basis: 40%; overflow: auto"
+        >
+          <div style="position: absolute">
+            <FileTree />
+          </div>
+        </v-card>
+        <codemirror
+          v-model="code"
+          v-bind:options="{ mode: 'python', theme: 'rubyblue' }"
+        />
+      </div>
       <EditorControls
         class="mt-2"
         v-bind:scene-choices="sceneChoices"
@@ -38,10 +52,12 @@
 </template>
 
 <script>
+  /* eslint-disable */
   import * as THREE from "three";
   import * as consts from "../constants.js";
   import * as fs from "fs";
   import EditorControls from  "./EditorControls.vue";
+  import FileTree from  "./FileTree.vue";
   import path from "path";
   import { ManimInterface } from "../ManimInterface.js";
   import { Mobject } from  "../Mobject.js";
@@ -57,6 +73,7 @@
     components: {
       codemirror,
       EditorControls,
+      FileTree,
     },
     data() {
       return {
@@ -65,6 +82,7 @@
         chosenScene: "",
         saving: false,
         displaySaveMessage: false,
+        displayFileTree: false,
       };
     },
     created() {
@@ -191,6 +209,9 @@
             this.refreshSceneChoices();
           },
         );
+      },
+      toggleFileTree() {
+        this.displayFileTree = !this.displayFileTree;
       },
       refreshSceneChoices() {
         this.manimInterface
