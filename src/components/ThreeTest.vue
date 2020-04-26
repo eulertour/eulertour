@@ -87,18 +87,18 @@
       // Javascript.
       this.mobjectDict = {};
 
-      this.workspacePath = "";
+      this.workspacePath = '';
       this.projectDirectory = "projects";
       this.selectedProject = "default";
       this.filepath = "example_scenes.py";
 
       this.manimConfig = {
         python: {
-          pythonPath: '/home/devneal/.virtualenvs/manimenv/bin/python',
+          pythonPath: '',
           pythonOptions: ['-u'],
         },
         manim: {
-          manimPath: "/home/devneal/github/manim/manim.py",
+          manimPath: '',
           pixelHeight: this.rendererHeight,
           pixelWidth: this.rendererWidth,
         },
@@ -186,7 +186,10 @@
           this.projectFilePath,
           this.code,
           { encoding: "utf8" },
-          () => { this.saving = false },
+          () => {
+            this.saving = false;
+            this.refreshSceneChoices();
+          },
         );
       },
       refreshSceneChoices() {
@@ -262,6 +265,7 @@
               mobject.dispose();
             }
             this.frameData.length = 0;
+            this.mobjectDict = {};
           }
         }
         animate();

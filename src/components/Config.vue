@@ -124,6 +124,7 @@
           path.join(this.workspacePath, "projects"),
           { clobber: false },
           err => {
+            // If the directory already exists simply continue.
             if (err && err !== 'EEXIST') {
               console.error(err);
             } else {

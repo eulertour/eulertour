@@ -48,17 +48,15 @@ class ManimInterface {
 
   getSceneChoices(filePath) {
     return new Promise(resolve => {
-      let choices = [];
       new PythonShell(
         this.config.manim.manimPath,
         Object.assign(
           this.config.python,
-          { args: [filePath, "--display_scenes"] },
+          { args: [filePath, "--display_scenes"], mode: 'json' },
         ),
       )
-      .on('message', scene => choices.push(scene))
+      .on('message', scenes => resolve(scenes))
       .on('error', error => console.warn(error))
-      .on('close', () => resolve(choices));
     });
   }
 }
