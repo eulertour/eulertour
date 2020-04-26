@@ -1,7 +1,6 @@
 <template>
   <v-treeview
     style="position: absolute"
-    class="full-width"
     :active="activeNode"
     :items="items"
     :load-children="fetchDirectoryContents"
