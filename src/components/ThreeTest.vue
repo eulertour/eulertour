@@ -29,9 +29,10 @@
           class="full-height mr-2"
           style="flex-basis: 40%; overflow: auto"
         >
-          <div style="position: absolute">
-            <FileTree />
-          </div>
+          <FileTree
+            :root-path="projectDirectoryPath"
+            @select="switchFile"
+          />
         </v-card>
         <codemirror
           v-model="code"
@@ -40,11 +41,12 @@
       </div>
       <EditorControls
         class="mt-2"
-        v-bind:scene-choices="sceneChoices"
-        v-bind:chosen-scene-prop="chosenScene"
-        v-on:chosen-scene-update="(newScene)=>{this.chosenScene=newScene}"
-        v-on:refresh-scene-choices="refreshSceneChoices"
-        v-on:run-manim="runManim"
+        :scene-choices="sceneChoices"
+        :chosen-scene-prop="chosenScene"
+        :python-file-selected="pythonFileSelected"
+        @chosen-scene-update="(newScene)=>{this.chosenScene=newScene}"
+        @refresh-scene-choices="refreshSceneChoices"
+        @run-manim="runManim"
       />
     </div>
     <canvas class="renderer-element" ref="renderer"/>
@@ -52,7 +54,6 @@
 </template>
 
 <script>
-  /* eslint-disable */
   import * as THREE from "three";
   import * as consts from "../constants.js";
   import * as fs from "fs";
@@ -83,6 +84,11 @@
         saving: false,
         displaySaveMessage: false,
         displayFileTree: false,
+
+        workspacePath: '',
+        projectDirectory: "projects",
+        selectedProject: "default",
+        filepath: "example_scenes.py",
       };
     },
     created() {
@@ -104,11 +110,6 @@
       // Maps Mobject IDs from Python to their respective Mobjects in
       // Javascript.
       this.mobjectDict = {};
-
-      this.workspacePath = '';
-      this.projectDirectory = "projects";
-      this.selectedProject = "default";
-      this.filepath = "example_scenes.py";
 
       this.manimConfig = {
         python: {
@@ -181,6 +182,14 @@
           this.filepath,
         );
       },
+      projectDirectoryPath() {
+        return path.join(
+          this.workspacePath,
+          this.projectDirectory,
+          this.selectedProject,
+        );
+      },
+      pythonFileSelected() { return this.filepath.endsWith('.py') },
     },
     watch: {
       saving(saveStatus) {
@@ -209,6 +218,22 @@
             this.refreshSceneChoices();
           },
         );
+      },
+      switchFile(filePath) {
+        if (filePath === this.filepath) return;
+
+        this.filepath = filePath;
+        this.loadCode().then(code => {
+          this.code = code;
+          if (this.pythonFileSelected) {
+            return this.manimInterface.getSceneChoices(this.projectFilePath);
+          }
+        }).then(sceneChoices => {
+          if (sceneChoices) {
+            this.sceneChoices = sceneChoices;
+            this.chosenScene = this.sceneChoices[0];
+          }
+        });
       },
       toggleFileTree() {
         this.displayFileTree = !this.displayFileTree;
