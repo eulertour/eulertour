@@ -20,6 +20,7 @@ class ManimInterface {
               filePath,
               scene,
               "--print_frames_only",
+              "--change_directory", projectPath,
               // "--use_javascript_svg_interpretation",
               "-l",
             ],
