@@ -6,14 +6,14 @@
       v-model="chosenScene"
       label="Scene"
       solo
-      :disabled="!pythonFileSelected"
+      :disabled="disabled"
     />
     <v-btn
       class="mr-2"
       large
       min-height="48"
       @click="$emit('refresh-scene-choices')"
-      :disabled="!pythonFileSelected"
+      :disabled="disabled"
     >
       <v-icon class="headline black--text">mdi-replay</v-icon>
     </v-btn>
@@ -22,7 +22,7 @@
       min-height="48"
       @click="$emit('run-manim')"
       color="primary"
-      :disabled="!pythonFileSelected"
+      :disabled="disabled"
     >
       <v-icon class="headline white--text mr-2">mdi-cube-outline</v-icon>
       <span class="title">Run</span>
@@ -36,7 +36,7 @@
     props: {
       sceneChoices: Array,
       chosenSceneProp: String,
-      pythonFileSelected: Boolean,
+      disabled: Boolean,
     },
     computed: {
       chosenScene: {

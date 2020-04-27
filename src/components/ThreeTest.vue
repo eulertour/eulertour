@@ -2,10 +2,25 @@
   <div class="d-flex full-width mt-2 mx-2">
     <div class="d-flex mr-2 flex-column full-width">
       <div class="d-flex mb-2 full-width">
-        <v-btn @click="toggleFileTree" class="full-height d-flex justify-center align-center mr-2 px-2">
-          <v-icon color="primary">mdi-file-tree</v-icon>
-        </v-btn>
-        <v-card class="d-flex align-center flex-grow-1 justify-space-between px-3" height="50px">
+        <v-card
+          class="d-flex align-center justify-space-between mr-2 pa-1"
+          :style="{ flexBasis: displayFileTree ? fileTreeWidth: 'auto'}"
+        >
+          <v-btn small fab icon @click="toggleFileTree">
+            <v-icon color="primary">mdi-file-tree</v-icon>
+          </v-btn>
+
+          <v-btn
+            small
+            fab
+            icon
+            @click="()=>{ displayProjectsInTree = !displayProjectsInTree }"
+            :class="{ 'display-none': !displayFileTree }"
+          >
+            <v-icon color="primary">mdi-folder-swap-outline</v-icon>
+          </v-btn>
+        </v-card>
+        <v-card class="d-flex align-center flex-grow-1 justify-space-between pr-1 pl-2">
           <div>
             <span class="headline mr-1">{{ selectedProject }}</span>
             <span>/{{ filepath }}</span>
@@ -17,21 +32,24 @@
             >
               saved
             </span>
-            <v-icon color="primary" @click="quickSave" :disabled="saving">
-              mdi-content-save
-            </v-icon>
+            <v-btn small fab icon @click="quickSave">
+              <v-icon color="primary" @click="quickSave" :disabled="saving">
+                mdi-content-save
+              </v-icon>
+            </v-btn>
           </div>
         </v-card>
       </div>
       <div class="d-flex full-width full-height">
         <v-card
-          v-bind:class="{ 'display-none': !displayFileTree }"
+          :class="{ 'display-none': !displayFileTree }"
           class="full-height mr-2"
-          style="flex-basis: 40%; overflow: auto"
+          :style="{ flexBasis: fileTreeWidth, overflow: 'auto' }"
         >
           <FileTree
-            :root-path="projectDirectoryPath"
-            @select="switchFile"
+            :root-path="displayProjectsInTree ? projectDirectoryPath : selectedProjectPath"
+            :project-select="displayProjectsInTree"
+            @select="path => { displayProjectsInTree ? switchProject(path) : switchFile(path) }"
           />
         </v-card>
         <codemirror
@@ -43,7 +61,7 @@
         class="mt-2"
         :scene-choices="sceneChoices"
         :chosen-scene-prop="chosenScene"
-        :python-file-selected="pythonFileSelected"
+        :disabled="!pythonFileSelected && !displayProjectsInTree"
         @chosen-scene-update="(newScene)=>{this.chosenScene=newScene}"
         @refresh-scene-choices="refreshSceneChoices"
         @run-manim="runManim"
@@ -84,6 +102,7 @@
         saving: false,
         displaySaveMessage: false,
         displayFileTree: false,
+        displayProjectsInTree: false,
 
         workspacePath: '',
         projectDirectory: "projects",
@@ -124,6 +143,7 @@
       };
       this.manimInterface = null;
       this.store = new Store({ schema: consts.STORAGE_SCHEMA });
+      this.fileTreeWidth = '250px';
     },
     mounted() {
       let paths = this.store.get('paths', null);
@@ -182,11 +202,17 @@
           this.filepath,
         );
       },
-      projectDirectoryPath() {
+      selectedProjectPath() {
         return path.join(
           this.workspacePath,
           this.projectDirectory,
           this.selectedProject,
+        );
+      },
+      projectDirectoryPath() {
+        return path.join(
+          this.workspacePath,
+          this.projectDirectory,
         );
       },
       pythonFileSelected() { return this.filepath.endsWith('.py') },
@@ -234,6 +260,10 @@
             this.chosenScene = this.sceneChoices[0];
           }
         });
+      },
+      switchProject(project) {
+        this.displayProjectsInTree = false;
+        this.selectedProject = project;
       },
       toggleFileTree() {
         this.displayFileTree = !this.displayFileTree;

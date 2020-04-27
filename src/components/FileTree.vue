@@ -1,6 +1,6 @@
 <template>
   <v-treeview
-    style="position: absolute"
+    style="position: absolute; min-width: 100%"
     :active="activeNode"
     :items="items"
     :load-children="fetchDirectoryContents"
@@ -27,7 +27,10 @@
   import * as path from "path";
   export default {
     name: "FileTree",
-    props: { rootPath: String },
+    props: {
+      rootPath: String,
+      projectSelect: Boolean,
+    },
     data() {
       return {
         items: [],
@@ -60,7 +63,7 @@
         return files.map(f => {
           let ret = { name: f, parent: parentItem };
           let stats = fs.statSync(path.join(parentPath, f));
-          if (stats.isDirectory(stats)) {
+          if (stats.isDirectory(stats) && !this.projectSelect) {
             ret.children = [];
           }
           return ret;
@@ -84,11 +87,15 @@
           });
       },
       iconFromFile(file) {
+        if (this.projectSelect) return 'mdi-folder-multiple';
         if (file.endsWith('.py')) return 'mdi-language-python';
         return 'mdi-file-document-outline';
       },
       updateActiveFile(fileList) {
-        console.assert(fileList.length === 1);
+        console.assert(
+          fileList.length === 1,
+          fileList,
+        );
         this.$emit('select', this.pathFromItem(fileList[0]));
       }
     },
