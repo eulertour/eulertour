@@ -157,7 +157,7 @@
 
       this.loadCode().then(code => {
         this.code = code;
-        return this.manimInterface.getSceneChoices(this.projectFilePath);
+        return this.manimInterface.getSceneChoices(this.selectedProjectPath, this.projectFilePath);
       }).then(sceneChoices => {
         this.sceneChoices = sceneChoices;
         this.chosenScene = this.sceneChoices[0];
@@ -252,7 +252,7 @@
         this.loadCode().then(code => {
           this.code = code;
           if (this.pythonFileSelected) {
-            return this.manimInterface.getSceneChoices(this.projectFilePath);
+            return this.manimInterface.getSceneChoices(this.selectedProjectPath, this.projectFilePath);
           }
         }).then(sceneChoices => {
           if (sceneChoices) {
@@ -270,12 +270,12 @@
       },
       refreshSceneChoices() {
         this.manimInterface
-          .getSceneChoices(this.projectFilePath)
+          .getSceneChoices(this.selectedProjectPath, this.projectFilePath)
           .then(sceneChoices => this.sceneChoices = sceneChoices);
       },
       runManim() {
         this.manimInterface
-          .getFrameData(this.projectFilePath, this.chosenScene)
+          .getFrameData(this.selectedProjectPath, this.projectFilePath, this.chosenScene)
           .then(frameData => {
             this.frameData = frameData;
             this.animateFrameData();

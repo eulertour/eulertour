@@ -1,12 +1,14 @@
 import { PythonShell } from "python-shell";
 import * as utils from "./utils";
+import { remote } from "electron";
 
 class ManimInterface {
   constructor(config) {
     this.config = config;
+    this.globalEnv = remote.getGlobal('process').env;
   }
 
-  getFrameData(filePath, scene) {
+  getFrameData(projectPath, filePath, scene) {
     return new Promise(resolve => {
       let frameData = [];
       this.manim = new PythonShell(
@@ -22,6 +24,7 @@ class ManimInterface {
               "-l",
             ],
             mode: 'json',
+            env: Object.assign(this.globalEnv, { PYTHONPATH: projectPath }),
           },
         ),
       )
@@ -46,13 +49,17 @@ class ManimInterface {
     });
   }
 
-  getSceneChoices(filePath) {
+  getSceneChoices(projectPath, filePath) {
     return new Promise(resolve => {
       new PythonShell(
         this.config.manim.manimPath,
         Object.assign(
           this.config.python,
-          { args: [filePath, "--display_scenes"], mode: 'json' },
+          {
+            args: [filePath, "--display_scenes"],
+            mode: 'json',
+            env: Object.assign(this.globalEnv, { PYTHONPATH: projectPath }),
+          },
         ),
       )
       .on('message', scenes => resolve(scenes))
