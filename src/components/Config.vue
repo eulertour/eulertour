@@ -47,7 +47,7 @@
 <script>
   /* global __static */
   import * as consts from "../constants.js";
-  import * as ncp from "ncp";
+  import * as fs from "fs-extra";
   import * as path from "path";
   import FilePicker from "./FilePicker.vue";
   const Store = require('electron-store');
@@ -119,19 +119,13 @@
         this.store.set('paths.python', this.pythonPath);
         this.store.set('paths.workspace', this.workspacePath);
 
-        ncp(
+        fs.copySync(
           path.join(__static, "projects"),
           path.join(this.workspacePath, "projects"),
-          { clobber: false },
-          err => {
-            // If the directory already exists simply continue.
-            if (err && err !== 'EEXIST') {
-              console.error(err);
-            } else {
-              this.$router.push(consts.ROOT_URL);
-            }
-          },
+          { overwrite: false },
         );
+
+        this.$router.push(consts.ROOT_URL);
       }
     },
   }

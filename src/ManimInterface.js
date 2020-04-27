@@ -63,7 +63,19 @@ class ManimInterface {
           },
         ),
       )
-      .on('message', scenes => resolve(scenes))
+      .on('message', results => {
+        let { message, data } = results;
+        switch (message) {
+          case 'debug':
+            console.log(`Received debug message from Python: ${data}`);
+            break;
+          case 'scenes':
+            resolve(data);
+            break;
+          default:
+            console.warn(`Received message with unknown type: ${results}`);
+        }
+      })
       .on('error', error => console.warn(error))
     });
   }
