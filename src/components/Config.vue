@@ -47,7 +47,7 @@
 <script>
   /* global __static */
   import * as consts from "../constants.js";
-  import * as fs from "fs-extra";
+  import * as fs from "fs";
   import * as path from "path";
   import FilePicker from "./FilePicker.vue";
   const Store = require('electron-store');
@@ -119,14 +119,35 @@
         this.store.set('paths.python', this.pythonPath);
         this.store.set('paths.workspace', this.workspacePath);
 
-        fs.copySync(
-          path.join(__static, "projects"),
-          path.join(this.workspacePath, "projects"),
-          { overwrite: false },
-        );
+        let defaultProjectPath = path.join(this.workspacePath, "projects");
+        if (!fs.existsSync(defaultProjectPath)) {
+          this.copyRecursiveSync(
+            path.join(__static, "projects"),
+            defaultProjectPath,
+          );
+        }
 
         this.$router.push(consts.ROOT_URL);
-      }
+      },
+      // Adapted from https://stackoverflow.com/a/22185855/3753494 in order to
+      // update permissions while copying.
+      copyRecursiveSync(src, dest) {
+        var exists = fs.existsSync(src);
+        var stats = exists && fs.statSync(src);
+        var isDirectory = exists && stats.isDirectory();
+        if (isDirectory) {
+          fs.mkdirSync(dest);
+          fs.readdirSync(src).forEach(childItemName => {
+            this.copyRecursiveSync(
+              path.join(src, childItemName),
+              path.join(dest, childItemName),
+            );
+          });
+        } else {
+          fs.copyFileSync(src, dest);
+        }
+        fs.chmodSync(dest, 0o755);
+      },
     },
   }
 </script>
