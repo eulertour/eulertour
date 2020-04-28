@@ -28,7 +28,7 @@
           <div>
             <span
               v-bind:class="{ 'display-none': !displaySaveMessage }"
-              class="mr-1 grey--text text--darken-1"
+              class="grey--text text--darken-1"
             >
               saved
             </span>
@@ -61,7 +61,7 @@
         class="mt-2"
         :scene-choices="sceneChoices"
         :chosen-scene-prop="chosenScene"
-        :disabled="!pythonFileSelected && !displayProjectsInTree"
+        :disabled="!pythonFileSelected || displayProjectsInTree || animating"
         @chosen-scene-update="(newScene)=>{this.chosenScene=newScene}"
         @refresh-scene-choices="refreshSceneChoices"
         @run-manim="runManim"
@@ -103,6 +103,7 @@
         displaySaveMessage: false,
         displayFileTree: false,
         displayProjectsInTree: false,
+        animating: false,
 
         workspacePath: '',
         projectDirectory: "projects",
@@ -277,6 +278,7 @@
         this.manimInterface
           .getFrameData(this.selectedProjectPath, this.projectFilePath, this.chosenScene)
           .then(frameData => {
+            this.animating = true;
             this.frameData = frameData;
             this.animateFrameData();
           });
@@ -342,6 +344,7 @@
             }
             this.frameData.length = 0;
             this.mobjectDict = {};
+            this.animating = false;
           }
         }
         animate();

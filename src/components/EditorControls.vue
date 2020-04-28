@@ -24,8 +24,8 @@
       color="primary"
       :disabled="disabled"
     >
-      <v-icon class="headline white--text mr-2">mdi-cube-outline</v-icon>
-      <span class="title">Run</span>
+      <v-icon class="headline white--text mr-1">mdi-cube-outline</v-icon>
+      <span class="title text-none">Run</span>
     </v-btn>
   </div>
 </template>
