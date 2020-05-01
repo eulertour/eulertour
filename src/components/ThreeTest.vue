@@ -370,6 +370,7 @@
         animate();
       },
       exportFrameData() {
+        let cat = spawn("cat");
         let ffmpeg = spawn(
           // "cat",
           "ffmpeg",
@@ -394,18 +395,19 @@
         ffmpeg.stderr.on('data', data => {
           console.log(`ffmpeg stderr: ${data}`);
         });
+        cat.stdout.pipe(ffmpeg.stdin);
 
         let bufs = [];
         let p = Promise.resolve();
-        for (let i = 0; i < this.frameData.length; i++) {
+        for (let i = 0; i < 1/* this.frameData.length */; i++) {
           p = p.then(_ => new Promise(resolve => {
             this.renderFrame(i);
             this.renderer.domElement.toBlob(blob => {
               blob.arrayBuffer().then(arr => {
                 console.log('writing...');
                 let uInt8Arr = new Uint8Array(arr);
-                // ffmpeg.stdin.write(uInt8Arr);
-                bufs.push(uInt8Arr);
+                cat.stdin.write(uInt8Arr);
+                // bufs.push(uInt8Arr);
                 resolve();
               });
             });
@@ -413,9 +415,11 @@
         }
         p = p.then(_ => {
           for (let buf of bufs) {
-            ffmpeg.stdin.write(buf);
+            // ffmpeg.stdin.write(buf);
+            // cat.stdin.write(buf);
           }
-          ffmpeg.stdin.end();
+          // ffmpeg.stdin.end();
+          cat.stdin.end();
           this.animating = false;
         });
       },
