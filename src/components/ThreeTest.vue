@@ -62,9 +62,11 @@
         :scene-choices="sceneChoices"
         :chosen-scene-prop="chosenScene"
         :disabled="!pythonFileSelected || displayProjectsInTree || animating"
+        :animation-action="animationAction"
         @chosen-scene-update="(newScene)=>{this.chosenScene=newScene}"
         @refresh-scene-choices="refreshSceneChoices"
         @run-manim="runManim"
+        @update-animation-action="value => animationAction = value"
       />
     </div>
     <canvas class="renderer-element" ref="renderer"/>
@@ -72,6 +74,7 @@
 </template>
 
 <script>
+  /* eslint-disable */
   import * as THREE from "three";
   import * as consts from "../constants.js";
   import * as fs from "fs";
@@ -81,6 +84,7 @@
   import { ManimInterface } from "../ManimInterface.js";
   import { Mobject } from  "../Mobject.js";
   const Store = require('electron-store');
+  import { spawn } from "child_process";
 
   import { codemirror } from 'vue-codemirror'
   import 'codemirror/lib/codemirror.css'
@@ -104,6 +108,7 @@
         displayFileTree: false,
         displayProjectsInTree: false,
         animating: false,
+        animationAction: "export",
 
         workspacePath: '',
         projectDirectory: "projects",
@@ -114,7 +119,7 @@
     created() {
       this.fps = 15;
       this.aspectRatio = 16 / 9;
-      this.rendererHeight = 480; // Set to 720 for 720p
+      this.rendererHeight = 576; // Set to 720 for 720p
       this.sceneHeight = 8;
       this.cameraNear = 1; // z = 2
       this.cameraFar = 5;  // z = -2
@@ -275,13 +280,73 @@
           .then(sceneChoices => this.sceneChoices = sceneChoices);
       },
       runManim() {
-        this.manimInterface
-          .getFrameData(this.selectedProjectPath, this.projectFilePath, this.chosenScene)
-          .then(frameData => {
-            this.animating = true;
-            this.frameData = frameData;
-            this.animateFrameData();
-          });
+        this.animating = true;
+        if (this.animationAction === "preview") {
+          this.manimInterface
+            .getFrameData(this.selectedProjectPath, this.projectFilePath, this.chosenScene)
+            .then(frameData => {
+              this.frameData = frameData;
+              this.animateFrameData();
+            });
+        } else {
+          this.manimInterface
+            .getFrameData(this.selectedProjectPath, this.projectFilePath, this.chosenScene)
+            .then(frameData => {
+              this.frameData = frameData;
+              this.exportFrameData();
+            });
+        }
+      },
+      renderFrame(frameNumber) {
+        let frameData = this.frameData[frameNumber];
+        // Add each Mobject in the frame.
+        let currentFrameMobjectIds = new Set();
+        for (let mobjectData of frameData) {
+          let {
+            id,
+            points,
+            style,
+            needsRedraw,
+            needsTriangulation,
+          } = mobjectData;
+          currentFrameMobjectIds.add(id);
+          if (id in this.mobjectDict) {
+            this.mobjectDict[id].update(
+              points,
+              style,
+              needsRedraw,
+              needsTriangulation,
+            );
+          } else {
+            this.mobjectDict[id] = new Mobject(id, points, style);
+          }
+          // As long as all Mobjects are direct children of the Scene
+          // double-adding them has no effect.
+          this.scene.add(this.mobjectDict[id]);
+        }
+
+        // Remove each Mobject that isn't in the frame.
+        for (let i = this.scene.children.length - 1; i >= 0; i--) {
+          let child = this.scene.children[i];
+          if (!(currentFrameMobjectIds.has(child.mobjectId))) {
+            this.scene.remove(child);
+          }
+        }
+
+        // Render the frame.
+        this.renderer.render(this.scene, this.camera);
+      },
+      clearFrameData() {
+        // Clear the Scene.
+        for (let i = this.scene.children.length - 1; i >= 0; i--) {
+          this.scene.remove(this.scene.children[i]);
+        }
+        // Dispose the Mobjects.
+        for (let mobject of Object.values(this.mobjectDict)) {
+          mobject.dispose();
+        }
+        this.frameData.length = 0;
+        this.mobjectDict = {};
       },
       animateFrameData() {
         let lastFrameTimestamp = window.performance.now();
@@ -296,59 +361,64 @@
             if (elapsed <= this.fpsInterval) return;
             lastFrameTimestamp = now - (elapsed % this.fpsInterval);
 
-            let frameData = this.frameData[currentFrame];
-            // Add each Mobject in the frame.
-            let currentFrameMobjectIds = new Set();
-            for (let mobjectData of frameData) {
-              let {
-                id,
-                points,
-                style,
-                needsRedraw,
-                needsTriangulation,
-              } = mobjectData;
-              currentFrameMobjectIds.add(id);
-              if (id in this.mobjectDict) {
-                this.mobjectDict[id].update(
-                  points,
-                  style,
-                  needsRedraw,
-                  needsTriangulation,
-                );
-              } else {
-                this.mobjectDict[id] = new Mobject(id, points, style);
-              }
-              // As long as all Mobjects are direct children of the Scene
-              // double-adding them has no effect.
-              this.scene.add(this.mobjectDict[id]);
-            }
-
-            // Remove each Mobject that isn't in the frame.
-            for (let i = this.scene.children.length - 1; i >= 0; i--) {
-              let child = this.scene.children[i];
-              if (!(currentFrameMobjectIds.has(child.mobjectId))) {
-                this.scene.remove(child);
-              }
-            }
-
-            this.renderer.render(this.scene, this.camera);
-            currentFrame += 1;
+            this.renderFrame(currentFrame++);
           } else {
-            // Clear the Scene.
-            for (let i = this.scene.children.length - 1; i >= 0; i--) {
-              this.scene.remove(this.scene.children[i]);
-            }
-            // Dispose the Mobjects.
-            for (let mobject of Object.values(this.mobjectDict)) {
-              mobject.dispose();
-            }
-            this.frameData.length = 0;
-            this.mobjectDict = {};
+            this.clearFrameData();
             this.animating = false;
           }
         }
         animate();
-      }
+      },
+      exportFrameData() {
+        let ffmpeg = spawn(
+          // "cat",
+          "ffmpeg",
+          [
+            "-y",
+            "-loglevel", "info",
+            "-f", "image2pipe",
+            // "-s", `${this.rendererWidth}x${this.rendererHeight}`,
+            "-c:v", "png",
+            "-r", `${this.fps}`,
+            "-i", "-",
+
+            "-an",
+            "-vcodec", "libx264",
+            "-pix_fmt", "yuv420p",
+            "output.mp4",
+          ],
+        );
+        ffmpeg.stdout.on('data', data => {
+          console.log(`ffmpeg stdout: ${data}`);
+        });
+        ffmpeg.stderr.on('data', data => {
+          console.log(`ffmpeg stderr: ${data}`);
+        });
+
+        let bufs = [];
+        let p = Promise.resolve();
+        for (let i = 0; i < this.frameData.length; i++) {
+          p = p.then(_ => new Promise(resolve => {
+            this.renderFrame(i);
+            this.renderer.domElement.toBlob(blob => {
+              blob.arrayBuffer().then(arr => {
+                console.log('writing...');
+                let uInt8Arr = new Uint8Array(arr);
+                // ffmpeg.stdin.write(uInt8Arr);
+                bufs.push(uInt8Arr);
+                resolve();
+              });
+            });
+          }));
+        }
+        p = p.then(_ => {
+          for (let buf of bufs) {
+            ffmpeg.stdin.write(buf);
+          }
+          ffmpeg.stdin.end();
+          this.animating = false;
+        });
+      },
     },
   }
 </script>
