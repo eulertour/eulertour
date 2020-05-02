@@ -372,23 +372,18 @@
       exportFrameData() {
         let cat = spawn("cat");
         let ffmpeg = spawn(
-          // "cat",
-          "ffmpeg",
-          [
+          "ffmpeg", [
             "-y",
             "-loglevel", "info",
             "-f", "image2pipe",
-            // "-s", `${this.rendererWidth}x${this.rendererHeight}`,
             "-c:v", "png",
             "-r", `${this.fps}`,
             "-i", "-",
-
             "-an",
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
             "output.mp4",
-          ],
-        );
+          ]);
         ffmpeg.stdout.on('data', data => {
           console.log(`ffmpeg stdout: ${data}`);
         });
@@ -397,28 +392,19 @@
         });
         cat.stdout.pipe(ffmpeg.stdin);
 
-        let bufs = [];
         let p = Promise.resolve();
-        for (let i = 0; i < 1/* this.frameData.length */; i++) {
+        for (let i = 0; i < this.frameData.length; i++) {
           p = p.then(_ => new Promise(resolve => {
             this.renderFrame(i);
             this.renderer.domElement.toBlob(blob => {
               blob.arrayBuffer().then(arr => {
-                console.log('writing...');
-                let uInt8Arr = new Uint8Array(arr);
-                cat.stdin.write(uInt8Arr);
-                // bufs.push(uInt8Arr);
+                cat.stdin.write(new Uint8Array(arr));
                 resolve();
               });
             });
           }));
         }
         p = p.then(_ => {
-          for (let buf of bufs) {
-            // ffmpeg.stdin.write(buf);
-            // cat.stdin.write(buf);
-          }
-          // ffmpeg.stdin.end();
           cat.stdin.end();
           this.animating = false;
         });
