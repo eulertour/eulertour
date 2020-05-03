@@ -69,14 +69,22 @@
         @update-animation-action="value => animationAction = value"
       />
     </div>
-    <canvas v-if="!displayVideo" class="preview-dimensions" ref="renderer"/>
-    <video
-      v-else
-      controls
-      :src="videoUrl"
-      type="video/mp4"
-      class="preview-dimensions"
-    />
+    <div
+      id="preview-container"
+      :style="{
+        width: `${rendererWidth}px`,
+        height: `${rendererHeight}px`,
+      }"
+      class="flex-shrink-0"
+    >
+      <video
+        v-if="displayVideo"
+        controls
+        :src="videoUrl"
+        type="video/mp4"
+        class="full-width full-height"
+      />
+    </div>
   </div>
 </template>
 
@@ -115,9 +123,9 @@
         displayFileTree: false,
         displayProjectsInTree: false,
         animating: false,
-        animationAction: "export",
-        displayVideo: false,
+        animationAction: "preview",
         videoUrl: "",
+        displayVideo: false,
 
         workspacePath: '',
         projectDirectory: "projects",
@@ -128,9 +136,10 @@
     created() {
       this.fps = 15;
       this.aspectRatio = 16 / 9;
-      // Common options are 576, 720, 768, 900, 1080, 1440, 2160.
-      this.rendererHeight = 576;
+      // Common options are 576p, 720p, 768p, 900p, 1080p, 1440p, 2160p.
+      this.outputResolution = 576;
       this.sceneHeight = 8;
+      this.rendererHeight = 270;
       this.cameraNear = 1; // z = 2
       this.cameraFar = 5;  // z = -2
       this.cameraZPosition = 3;
@@ -153,8 +162,8 @@
         },
         manim: {
           manimPath: '',
-          pixelHeight: this.rendererHeight,
-          pixelWidth: this.rendererWidth,
+          pixelHeight: this.resolutionHeight,
+          pixelWidth: this.resolutionWidth,
         },
       };
       this.manimInterface = null;
@@ -194,22 +203,21 @@
       this.camera.position.z = this.cameraZPosition;
 
       // Renderer
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: this.$refs.renderer,
-        antialias: true,
-      });
-      this.renderer.setSize(
-        this.rendererWidth,
-        this.rendererHeight,
-        false,
+      this.renderer = new THREE.WebGLRenderer({ antialias: true });
+      this.renderer.setPixelRatio(window.devicePixelRatio);
+      this.renderer.setSize(this.rendererWidth, this.rendererHeight, true);
+      document.getElementById("preview-container").appendChild(
+        this.renderer.domElement
       );
 
       this.manimInterface = new ManimInterface(this.manimConfig);
     },
     computed: {
-      sceneWidth() { return this.sceneHeight * this.aspectRatio; },
-      rendererWidth() { return this.rendererHeight * this.aspectRatio; },
-      fpsInterval() { return consts.MS_PER_SECOND / this.fps; },
+      sceneWidth() { return this.sceneHeight * this.aspectRatio },
+      rendererWidth() { return this.rendererHeight * this.aspectRatio },
+      resolutionHeight() { return this.outputResolution },
+      resolutionWidth() { return this.resolutionHeight * this.aspectRatio },
+      fpsInterval() { return consts.MS_PER_SECOND / this.fps },
       projectFilePath() {
         return path.join(
           this.workspacePath,
@@ -238,7 +246,7 @@
           "media",
           "videos",
           `${this.filepath.split('.py')[0]}`,
-          `${this.rendererHeight}p${this.fps}`,
+          `${this.resolutionHeight}p${this.fps}`,
         );
       },
       videoFilePath() {
@@ -255,18 +263,23 @@
         }
       },
       code() { this.displaySaveMessage = false; },
-      // displayVideo(newVal) {
-      //   if (newVal) {
-      //     this.camera.updateProjectionMatrix();
-      //   }
-      // }
+      displayVideo(displayingVideo) {
+        if (displayingVideo) {
+          let renderer = this.renderer.domElement;
+          renderer.parentElement.removeChild(renderer);
+        } else {
+          document.getElementById("preview-container").appendChild(
+            this.renderer.domElement,
+          );
+        }
+      },
+      animationAction(action) {
+        this.displayVideo = action === "export";
+      }
     },
     methods: {
       loadCode() {
-        return fs.promises.readFile(
-          this.projectFilePath,
-          { encoding: "utf8" },
-        );
+        return fs.promises.readFile(this.projectFilePath, { encoding: "utf8" });
       },
       quickSave() {
         if (this.saving) return;
@@ -426,14 +439,19 @@
           if (code !== 0) {
             console.error(`ffmpeg exited with error code ${code}.`);
           } else {
+            this.renderer.setPixelRatio(window.devicePixelRatio);
             this.videoUrl = new URL(`file://${this.videoFilePath}`);
-            this.animating = false;
             this.displayVideo = true;
+            this.animating = false;
           }
         });
 
         cat.stdout.pipe(ffmpeg.stdin);
 
+        this.renderer.setPixelRatio(
+          this.outputResolution / this.rendererHeight,
+        );
+        this.displayVideo = false;
         let p = Promise.resolve();
         for (let i = 0; i < this.frameData.length; i++) {
           p = p.then(_ => new Promise(resolve => {
@@ -469,9 +487,5 @@
   left: 0;
   right: 0;
   height: 100%;
-}
-.preview-dimensions {
-  width: 480px;
-  height: 270px;
 }
 </style>
