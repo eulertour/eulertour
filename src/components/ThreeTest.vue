@@ -169,6 +169,11 @@
       this.manimInterface = null;
       this.store = new Store({ schema: consts.STORAGE_SCHEMA });
       this.fileTreeWidth = '250px';
+
+      window.addEventListener('resize', () => {
+        this.resizeRenderer();
+        this.renderer.render(this.scene, this.camera);
+      });
     },
     mounted() {
       let paths = this.store.get('paths', null);
@@ -204,11 +209,11 @@
 
       // Renderer
       this.renderer = new THREE.WebGLRenderer({ antialias: true });
-      this.renderer.setPixelRatio(window.devicePixelRatio);
-      this.renderer.setSize(this.rendererWidth, this.rendererHeight, true);
       document.getElementById("preview-container").appendChild(
         this.renderer.domElement
       );
+      this.renderer.setSize(this.rendererWidth, this.rendererHeight, true);
+      this.resizeRenderer();
 
       this.manimInterface = new ManimInterface(this.manimConfig);
     },
@@ -323,6 +328,7 @@
           .then(sceneChoices => this.sceneChoices = sceneChoices);
       },
       runManim() {
+        this.clearFrameData();
         this.animating = true;
         if (this.animationAction === "preview") {
           this.manimInterface
@@ -406,7 +412,6 @@
 
             this.renderFrame(currentFrame++);
           } else {
-            this.clearFrameData();
             this.animating = false;
           }
         }
@@ -465,6 +470,13 @@
           }));
         }
         p = p.then(_ => cat.stdin.end());
+      },
+      resizeRenderer() {
+        const canvas = this.renderer.domElement;
+        const pixelRatio = window.devicePixelRatio;
+        const width  = canvas.clientWidth  * pixelRatio | 0;
+        const height = canvas.clientHeight * pixelRatio | 0;
+        this.renderer.setSize(width, height, false);
       },
     },
   }
