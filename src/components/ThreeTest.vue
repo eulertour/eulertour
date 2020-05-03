@@ -69,7 +69,14 @@
         @update-animation-action="value => animationAction = value"
       />
     </div>
-    <canvas class="renderer-element" ref="renderer"/>
+    <canvas v-if="!displayVideo" class="preview-dimensions" ref="renderer"/>
+    <video
+      v-else
+      controls
+      :src="videoUrl"
+      type="video/mp4"
+      class="preview-dimensions"
+    />
   </div>
 </template>
 
@@ -77,7 +84,7 @@
   /* eslint-disable */
   import * as THREE from "three";
   import * as consts from "../constants.js";
-  import * as fs from "fs";
+  import * as fs from "fs-extra";
   import EditorControls from  "./EditorControls.vue";
   import FileTree from  "./FileTree.vue";
   import path from "path";
@@ -109,6 +116,8 @@
         displayProjectsInTree: false,
         animating: false,
         animationAction: "export",
+        displayVideo: false,
+        videoUrl: "",
 
         workspacePath: '',
         projectDirectory: "projects",
@@ -119,7 +128,8 @@
     created() {
       this.fps = 15;
       this.aspectRatio = 16 / 9;
-      this.rendererHeight = 576; // Set to 720 for 720p
+      // Common options are 576, 720, 768, 900, 1080, 1440, 2160.
+      this.rendererHeight = 576;
       this.sceneHeight = 8;
       this.cameraNear = 1; // z = 2
       this.cameraFar = 5;  // z = -2
@@ -222,6 +232,21 @@
         );
       },
       pythonFileSelected() { return this.filepath.endsWith('.py') },
+      videoDirectoryPath() {
+        return path.join(
+          this.selectedProjectPath,
+          "media",
+          "videos",
+          `${this.filepath.split('.py')[0]}`,
+          `${this.rendererHeight}p${this.fps}`,
+        );
+      },
+      videoFilePath() {
+        return path.join(
+          this.videoDirectoryPath,
+          `${this.chosenScene}.mp4`,
+        );
+      },
     },
     watch: {
       saving(saveStatus) {
@@ -229,7 +254,12 @@
           this.displaySaveMessage = true;
         }
       },
-      code() { this.displaySaveMessage = false; }
+      code() { this.displaySaveMessage = false; },
+      // displayVideo(newVal) {
+      //   if (newVal) {
+      //     this.camera.updateProjectionMatrix();
+      //   }
+      // }
     },
     methods: {
       loadCode() {
@@ -370,6 +400,8 @@
         animate();
       },
       exportFrameData() {
+        fs.ensureDir(this.videoDirectoryPath);
+
         let cat = spawn("cat");
         let ffmpeg = spawn(
           "ffmpeg", [
@@ -382,7 +414,7 @@
             "-an",
             "-vcodec", "libx264",
             "-pix_fmt", "yuv420p",
-            "output.mp4",
+            this.videoFilePath,
           ]);
         ffmpeg.stdout.on('data', data => {
           console.log(`ffmpeg stdout: ${data}`);
@@ -390,6 +422,16 @@
         ffmpeg.stderr.on('data', data => {
           console.log(`ffmpeg stderr: ${data}`);
         });
+        ffmpeg.on('close', code => {
+          if (code !== 0) {
+            console.error(`ffmpeg exited with error code ${code}.`);
+          } else {
+            this.videoUrl = new URL(`file://${this.videoFilePath}`);
+            this.animating = false;
+            this.displayVideo = true;
+          }
+        });
+
         cat.stdout.pipe(ffmpeg.stdin);
 
         let p = Promise.resolve();
@@ -404,10 +446,7 @@
             });
           }));
         }
-        p = p.then(_ => {
-          cat.stdin.end();
-          this.animating = false;
-        });
+        p = p.then(_ => cat.stdin.end());
       },
     },
   }
@@ -431,7 +470,7 @@
   right: 0;
   height: 100%;
 }
-.renderer-element {
+.preview-dimensions {
   width: 480px;
   height: 270px;
 }
