@@ -47,15 +47,44 @@
           <v-icon class="headline white--text mr-1">mdi-cog</v-icon>
         </v-btn>
       </template>
-      <v-card class="pa-4">
-        <v-radio-group
-          :mandatory="true"
-          :value="animationAction"
-          @change="value=>$emit('update-animation-action', value)"
-        >
-          <v-radio label="Preview" value="preview" />
-          <v-radio label="Export" value="export" />
-        </v-radio-group>
+      <v-card class="d-flex pa-5">
+        <div class="mr-5">
+          <div class="title">Action</div>
+          <v-radio-group
+            :mandatory="true"
+            :value="animationAction"
+            @change="value=>$emit('update-animation-action', value)"
+          >
+            <v-radio label="Preview" value="preview" />
+            <v-radio label="Export" value="export" />
+          </v-radio-group>
+        </div>
+        <div class="mr-5">
+          <div class="title">Resolution</div>
+          <v-radio-group
+            :mandatory="true"
+            :value="outputResolution"
+            :disabled="animationAction === 'preview'"
+            @change="value=>$emit('update-output-resolution', value)"
+          >
+            <v-radio label="2160p" :value="2160" />
+            <v-radio label="1440p" :value="1440" />
+            <v-radio label="1080p" :value="1080" />
+            <v-radio label="720p" :value="720" />
+          </v-radio-group>
+        </div>
+        <div>
+          <div class="title">Frame Rate</div>
+          <v-radio-group
+            :mandatory="true"
+            :value="fps"
+            :disabled="animationAction === 'preview'"
+            @change="value=>$emit('update-fps', value)"
+          >
+            <v-radio label="60" :value="60" />
+            <v-radio label="30" :value="30" />
+          </v-radio-group>
+        </div>
       </v-card>
     </v-menu>
   </div>
@@ -69,6 +98,8 @@
       chosenSceneProp: String,
       disabled: Boolean,
       animationAction: String,
+      outputResolution: Number,
+      fps: Number,
     },
     computed: {
       chosenScene: {
@@ -88,5 +119,8 @@
   border-radius: 0 4px 4px 0;
   width: 30px;
   min-width: 30px;
+}
+.v-menu__content {
+  max-height: unset !important;
 }
 </style>

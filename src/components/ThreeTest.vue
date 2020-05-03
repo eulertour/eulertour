@@ -63,10 +63,14 @@
         :chosen-scene-prop="chosenScene"
         :disabled="!pythonFileSelected || displayProjectsInTree || animating"
         :animation-action="animationAction"
-        @chosen-scene-update="(newScene)=>{this.chosenScene=newScene}"
+        :output-resolution="outputResolution"
+        :fps="fps"
+        @chosen-scene-update="newScene => this.chosenScene = newScene"
         @refresh-scene-choices="refreshSceneChoices"
         @run-manim="runManim"
         @update-animation-action="value => animationAction = value"
+        @update-output-resolution="value => outputResolution = value"
+        @update-fps="value => fps = value"
       />
     </div>
     <div
@@ -126,6 +130,8 @@
         animationAction: "preview",
         videoUrl: "",
         displayVideo: false,
+        fps: 30,
+        outputResolution: 720,
 
         workspacePath: '',
         projectDirectory: "projects",
@@ -134,22 +140,19 @@
       };
     },
     created() {
-      this.fps = 15;
       this.aspectRatio = 16 / 9;
-      // Common options are 576p, 720p, 768p, 900p, 1080p, 1440p, 2160p.
-      this.outputResolution = 576;
       this.sceneHeight = 8;
       this.rendererHeight = 270;
       this.cameraNear = 1; // z = 2
       this.cameraFar = 5;  // z = -2
       this.cameraZPosition = 3;
+      this.previewFps = 30;
 
       this.scene = null;
       this.camera = null;
       this.renderer = null;
 
       this.frameData = [];
-      this.twoScene = null;
 
       // Maps Mobject IDs from Python to their respective Mobjects in
       // Javascript.
@@ -162,18 +165,17 @@
         },
         manim: {
           manimPath: '',
-          pixelHeight: this.resolutionHeight,
-          pixelWidth: this.resolutionWidth,
         },
       };
       this.manimInterface = null;
       this.store = new Store({ schema: consts.STORAGE_SCHEMA });
       this.fileTreeWidth = '250px';
 
-      window.addEventListener('resize', () => {
+      this.resizeAndRender = () => {
         this.resizeRenderer();
         this.renderer.render(this.scene, this.camera);
-      });
+      };
+      window.addEventListener('resize', this.resizeAndRender);
     },
     mounted() {
       let paths = this.store.get('paths', null);
@@ -222,7 +224,7 @@
       rendererWidth() { return this.rendererHeight * this.aspectRatio },
       resolutionHeight() { return this.outputResolution },
       resolutionWidth() { return this.resolutionHeight * this.aspectRatio },
-      fpsInterval() { return consts.MS_PER_SECOND / this.fps },
+      previewFpsInterval() { return consts.MS_PER_SECOND / this.previewFps },
       projectFilePath() {
         return path.join(
           this.workspacePath,
@@ -279,8 +281,14 @@
         }
       },
       animationAction(action) {
-        this.displayVideo = action === "export";
-      }
+        if (action === "export") {
+          this.displayVideo = true;
+          window.removeEventListener('resize', this.resizeAndRender);
+        } else {
+          this.displayVideo = false;
+          window.addEventListener('resize', this.resizeAndRender);
+        }
+      },
     },
     methods: {
       loadCode() {
@@ -332,14 +340,24 @@
         this.animating = true;
         if (this.animationAction === "preview") {
           this.manimInterface
-            .getFrameData(this.selectedProjectPath, this.projectFilePath, this.chosenScene)
+            .getFrameData(
+              this.selectedProjectPath,
+              this.projectFilePath,
+              this.chosenScene,
+              this.previewFps,
+            )
             .then(frameData => {
               this.frameData = frameData;
               this.animateFrameData();
             });
         } else {
           this.manimInterface
-            .getFrameData(this.selectedProjectPath, this.projectFilePath, this.chosenScene)
+            .getFrameData(
+              this.selectedProjectPath,
+              this.projectFilePath,
+              this.chosenScene,
+              this.fps,
+            )
             .then(frameData => {
               this.frameData = frameData;
               this.exportFrameData();
@@ -407,8 +425,8 @@
             // Throttle FPS (https://stackoverflow.com/a/19772220/3753494).
             let now = window.performance.now();
             let elapsed = now - lastFrameTimestamp;
-            if (elapsed <= this.fpsInterval) return;
-            lastFrameTimestamp = now - (elapsed % this.fpsInterval);
+            if (elapsed <= this.previewFpsInterval) return;
+            lastFrameTimestamp = now - (elapsed % this.previewFpsInterval);
 
             this.renderFrame(currentFrame++);
           } else {
@@ -444,7 +462,7 @@
           if (code !== 0) {
             console.error(`ffmpeg exited with error code ${code}.`);
           } else {
-            this.renderer.setPixelRatio(window.devicePixelRatio);
+            this.resizeRenderer();
             this.videoUrl = new URL(`file://${this.videoFilePath}`);
             this.displayVideo = true;
             this.animating = false;
@@ -453,8 +471,10 @@
 
         cat.stdout.pipe(ffmpeg.stdin);
 
-        this.renderer.setPixelRatio(
-          this.outputResolution / this.rendererHeight,
+        this.renderer.setSize(
+          this.resolutionWidth,
+          this.resolutionHeight,
+          false,
         );
         this.displayVideo = false;
         let p = Promise.resolve();

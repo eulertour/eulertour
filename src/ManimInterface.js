@@ -8,7 +8,7 @@ class ManimInterface {
     this.globalEnv = remote.getGlobal('process').env;
   }
 
-  getFrameData(projectPath, filePath, scene) {
+  getFrameData(projectPath, filePath, scene, fps) {
     return new Promise(resolve => {
       let frameData = [];
       this.manim = new PythonShell(
@@ -21,8 +21,8 @@ class ManimInterface {
               scene,
               "--print_frames_only",
               "--change_directory", projectPath,
+              "--frame_rate", fps,
               // "--use_javascript_svg_interpretation",
-              "-l",
             ],
             mode: 'json',
             env: Object.assign(this.globalEnv, { PYTHONPATH: projectPath }),
