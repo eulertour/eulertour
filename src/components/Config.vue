@@ -127,7 +127,7 @@
           );
         }
 
-        this.$router.push(consts.ROOT_URL);
+        this.$router.replace(consts.ROOT_URL);
       },
       // Adapted from https://stackoverflow.com/a/22185855/3753494 in order to
       // update permissions while copying.

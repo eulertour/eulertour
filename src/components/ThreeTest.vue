@@ -180,12 +180,11 @@
     mounted() {
       let paths = this.store.get('paths', null);
       if (paths === null) {
-        this.$router.push(consts.CONFIG_URL);
-      } else {
-        this.manimConfig.manim.manimPath = paths.manim;
-        this.manimConfig.python.pythonPath = paths.python;
-        this.workspacePath = paths.workspace;
+        this.$router.replace(consts.CONFIG_URL);
       }
+      this.manimConfig.manim.manimPath = paths.manim;
+      this.manimConfig.python.pythonPath = paths.python;
+      this.workspacePath = paths.workspace;
 
       this.loadCode().then(code => {
         this.code = code;
