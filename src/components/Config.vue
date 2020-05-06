@@ -65,6 +65,7 @@
         gettingStartedMessage: "A few things before we get started",
         pythonPath: null,
         manimPath: null,
+        ffmpegPath: null,
         workspacePath: null,
         panelData: [
           {
@@ -84,6 +85,15 @@
             icon: "mdi-github",
             properties: ['openFile'],
             model: "manimPath",
+          },
+          {
+            header: "FFmpeg",
+            placeholder: "ffmpeg",
+            selected: "ffmpegSelected",
+            description: "An installation of FFmpeg",
+            icon: "mdi-video",
+            properties: ['openFile'],
+            model: "ffmpegPath",
           },
           {
             header: "Workspace",
@@ -107,9 +117,11 @@
       pythonSelected() { return this.pythonPath !== null },
       manimSelected() { return this.manimPath !== null },
       workspaceSelected() { return this.workspacePath !== null },
+      ffmpegSelected() { return this.ffmpegPath !== null },
       allSelected() {
         return this.pythonSelected &&
                this.manimSelected &&
+               this.ffmpegSelected &&
                this.workspaceSelected;
       }
     },
@@ -118,6 +130,7 @@
         this.store.set('paths.manim', this.manimPath);
         this.store.set('paths.python', this.pythonPath);
         this.store.set('paths.workspace', this.workspacePath);
+        this.store.set('paths.ffmpeg', this.ffmpegPath);
 
         let defaultProjectPath = path.join(this.workspacePath, "projects");
         if (!fs.existsSync(defaultProjectPath)) {

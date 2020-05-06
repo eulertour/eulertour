@@ -177,6 +177,7 @@
         this.renderer.render(this.scene, this.camera);
       };
       window.addEventListener('resize', this.resizeAndRender);
+      this.ffmpegPath = null;
     },
     mounted() {
       let paths = this.store.get('paths', null);
@@ -187,6 +188,7 @@
       this.manimConfig.manim.manimPath = paths.manim;
       this.manimConfig.python.pythonPath = paths.python;
       this.workspacePath = paths.workspace;
+      this.ffmpegPath = paths.ffmpeg;
 
       this.loadCode().then(code => {
         this.code = code;
@@ -441,7 +443,7 @@
 
         let cat = spawn("cat");
         let ffmpeg = spawn(
-          "ffmpeg", [
+          this.ffmpegPath, [
             "-y",
             "-loglevel", "info",
             "-f", "image2pipe",
