@@ -172,6 +172,7 @@
       this.fileTreeWidth = '250px';
 
       this.resizeAndRender = () => {
+        if (this.renderer === null) return;
         this.resizeRenderer();
         this.renderer.render(this.scene, this.camera);
       };
@@ -181,6 +182,7 @@
       let paths = this.store.get('paths', null);
       if (paths === null) {
         this.$router.replace(consts.CONFIG_URL);
+        return;
       }
       this.manimConfig.manim.manimPath = paths.manim;
       this.manimConfig.python.pythonPath = paths.python;
