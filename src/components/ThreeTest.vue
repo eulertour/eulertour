@@ -441,7 +441,6 @@
       exportFrameData() {
         fs.ensureDir(this.videoDirectoryPath);
 
-        let cat = spawn("cat");
         let ffmpeg = spawn(
           this.ffmpegPath, [
             "-y",
@@ -472,8 +471,6 @@
           }
         });
 
-        cat.stdout.pipe(ffmpeg.stdin);
-
         this.renderer.setSize(
           this.resolutionWidth,
           this.resolutionHeight,
@@ -486,13 +483,13 @@
             this.renderFrame(i);
             this.renderer.domElement.toBlob(blob => {
               blob.arrayBuffer().then(arr => {
-                cat.stdin.write(new Uint8Array(arr));
+                ffmpeg.stdin.write(new Uint8Array(arr));
                 resolve();
               });
             });
           }));
         }
-        p = p.then(_ => cat.stdin.end());
+        p = p.then(_ => ffmpeg.stdin.destroy());
       },
       resizeRenderer() {
         const canvas = this.renderer.domElement;
