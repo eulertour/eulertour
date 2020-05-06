@@ -95,8 +95,6 @@
 </template>
 
 <script>
-const fixPath = require('fix-path');
-
 export default {
   name: 'App',
   data() {
@@ -104,9 +102,6 @@ export default {
       navigationDrawer: false
     };
   },
-  mounted() {
-    fixPath();
-  }
 };
 </script>
 
