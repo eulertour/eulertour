@@ -1,3 +1,6 @@
+import { remote } from "electron";
+import shellPath from "shell-path";
+
 // There might be other configuration than pixel shape later...
 export const PRODUCTION_QUALITY_CAMERA_CONFIG = {
     "pixel_height": 1440,
@@ -186,3 +189,14 @@ export const CODE_NAME = "code.py";
 export const THUMBNAIL_NAME = "thumbnail.png";
 export const DESCRIPTION_NAME = "description.txt"
 export const MS_PER_SECOND = 1000;
+
+export function fixPath() {
+  if (process.platform === 'darwin') {
+    remote.getGlobal('process').env.PATH = shellPath.sync() || [
+      './node_modules/.bin',
+      '/.nodebrew/current/bin',
+      '/usr/local/bin',
+      remote.getGlobal('process').env.PATH
+    ].join(':');
+  }
+}

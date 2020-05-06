@@ -22,6 +22,7 @@
     "mathjs": "^6.6.4",
     "ncp": "^2.0.0",
     "python-shell": "^1.0.8",
+    "shell-path": "^2.1.0",
     "three": "^0.115.0",
     "threejs-meshline": "^2.0.10",
     "vue": "^2.6.11",
