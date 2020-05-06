@@ -57,7 +57,11 @@ class ManimInterface {
         Object.assign(
           this.config.python,
           {
-            args: [filePath, "--display_scenes"],
+            args: [
+              filePath,
+              "--display_scenes",
+              "--change_directory", projectPath,
+            ],
             mode: 'json',
             env: Object.assign(this.globalEnv, { PYTHONPATH: projectPath }),
           },
