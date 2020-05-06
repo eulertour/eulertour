@@ -95,6 +95,8 @@
 </template>
 
 <script>
+import { fixPath } from "./constants.js";
+
 export default {
   name: 'App',
   data() {
@@ -102,6 +104,9 @@ export default {
       navigationDrawer: false
     };
   },
+  mounted() {
+    fixPath();
+  }
 };
 </script>
 
