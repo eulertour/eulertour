@@ -24,12 +24,17 @@ class ManimInterface {
               "--frame_rate", fps,
               // "--use_javascript_svg_interpretation",
             ],
-            mode: 'json',
             env: Object.assign(this.globalEnv, { PYTHONPATH: projectPath }),
           },
         ),
       )
       .on('message', results => {
+        try {
+          results = JSON.parse(results);
+        } catch (err) {
+          console.warn(`Intercepted message from Python: ${results}`);
+          return;
+        }
         let { message, data } = results;
         switch (message) {
           case 'frame':
@@ -42,7 +47,7 @@ class ManimInterface {
             console.log(`Received debug message from Python: ${data}`);
             break;
           default:
-            console.warn(`Received message with unknown type: ${results}`);
+            console.warn(`Received JSON with unknown type: ${results}`);
         }
       })
       .on('error', error => console.warn(error))
@@ -62,12 +67,17 @@ class ManimInterface {
               "--display_scenes",
               "--change_directory", projectPath,
             ],
-            mode: 'json',
             env: Object.assign(this.globalEnv, { PYTHONPATH: projectPath }),
           },
         ),
       )
       .on('message', results => {
+        try {
+          results = JSON.parse(results);
+        } catch (err) {
+          console.warn(`Intercepted message from Python: ${results}`);
+          return;
+        }
         let { message, data } = results;
         switch (message) {
           case 'debug':
@@ -77,7 +87,7 @@ class ManimInterface {
             resolve(data);
             break;
           default:
-            console.warn(`Received message with unknown type: ${results}`);
+            console.warn(`Received JSON with unknown type: ${results}`);
         }
       })
       .on('error', error => console.warn(error))
