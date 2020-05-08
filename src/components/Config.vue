@@ -45,12 +45,15 @@
 </template>
 
 <script>
+  /* eslint-disable */
   /* global __static */
   import * as consts from "../constants.js";
   import * as fs from "fs";
   import * as path from "path";
   import FilePicker from "./FilePicker.vue";
   const Store = require('electron-store');
+  import { remote } from "electron";
+  import { execSync } from "child_process";
 
   export default {
     name: "Config",
@@ -78,15 +81,6 @@
             model: "pythonPath",
           },
           {
-            header: "Manim",
-            placeholder: "manim.py",
-            selected: "manimSelected",
-            description: "A modified version of Manim designed to work with this app",
-            icon: "mdi-github",
-            properties: ['openFile'],
-            model: "manimPath",
-          },
-          {
             header: "FFmpeg",
             placeholder: "ffmpeg",
             selected: "ffmpegSelected",
@@ -94,6 +88,15 @@
             icon: "mdi-video",
             properties: ['openFile'],
             model: "ffmpegPath",
+          },
+          {
+            header: "Manim",
+            placeholder: "manim.py",
+            selected: "manimSelected",
+            description: "A modified version of Manim designed to work with this app",
+            icon: "mdi-github",
+            properties: ['openFile'],
+            model: "manimPath",
           },
           {
             header: "Workspace",
@@ -112,7 +115,11 @@
       this.CARD_MIN_HEIGHT = 400;
       this.store = new Store({ schema: consts.STORAGE_SCHEMA });
     },
-    mounted() { },
+    mounted() {
+      let path = remote.getGlobal('process').env.PATH;
+      this.attemptPythonAutoDetect();
+      this.attemptFfmpegAutoDetect();
+    },
     computed: {
       pythonSelected() { return this.pythonPath !== null },
       manimSelected() { return this.manimPath !== null },
@@ -126,6 +133,28 @@
       }
     },
     methods: {
+      pathOrNull(cmd) {
+        try {
+          return execSync(`which ${cmd}`).toString().trim();
+        } catch (err) {
+          return null;
+        }
+      },
+      attemptPythonAutoDetect() {
+        let python3Path = this.pathOrNull('python3');
+        if (!python3Path) return;
+        let python3Version = execSync(`${python3Path} --version`)
+                               .toString()
+                               .split(' ')[1];
+        if (parseFloat(python3Version) >= 3.7) {
+          this.pythonPath = python3Path;
+        }
+      },
+      attemptFfmpegAutoDetect() {
+        let ffmpegPath = this.pathOrNull('ffmpeg');
+        if (!ffmpegPath) return;
+        this.ffmpegPath = ffmpegPath;
+      },
       updateConfig() {
         this.store.set('paths.manim', this.manimPath);
         this.store.set('paths.python', this.pythonPath);
