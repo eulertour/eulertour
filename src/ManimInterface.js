@@ -8,7 +8,7 @@ class ManimInterface {
     this.globalEnv = remote.getGlobal('process').env;
   }
 
-  getFrameData(projectPath, filePath, scene, fps) {
+  getFrameData(projectPath, filePath, scene, fps, term) {
     return new Promise(resolve => {
       let frameData = [];
       this.manim = new PythonShell(
@@ -32,7 +32,7 @@ class ManimInterface {
         try {
           results = JSON.parse(results);
         } catch (err) {
-          console.warn(`Intercepted message from Python: ${results}`);
+          term.writeln(results);
           return;
         }
         let { message, data } = results;
@@ -43,11 +43,8 @@ class ManimInterface {
           case 'svgRequest':
             this.manim.send(utils.svgStringToPoints(data));
             break;
-          case 'debug':
-            console.log(`Received debug message from Python: ${data}`);
-            break;
           default:
-            console.warn(`Received JSON with unknown type: ${results}`);
+            console.warn(`Received unexpected JSON: ${results}`);
         }
       })
       .on('error', error => console.warn(error))
@@ -55,7 +52,7 @@ class ManimInterface {
     });
   }
 
-  getSceneChoices(projectPath, filePath) {
+  getSceneChoices(projectPath, filePath, term) {
     return new Promise(resolve => {
       new PythonShell(
         this.config.manim.manimPath,
@@ -75,19 +72,16 @@ class ManimInterface {
         try {
           results = JSON.parse(results);
         } catch (err) {
-          console.warn(`Intercepted message from Python: ${results}`);
+          term.writeln(results);
           return;
         }
         let { message, data } = results;
         switch (message) {
-          case 'debug':
-            console.log(`Received debug message from Python: ${data}`);
-            break;
           case 'scenes':
             resolve(data);
             break;
           default:
-            console.warn(`Received JSON with unknown type: ${results}`);
+            console.warn(`Received unexpected JSON: ${results}`);
         }
       })
       .on('error', error => console.warn(error))

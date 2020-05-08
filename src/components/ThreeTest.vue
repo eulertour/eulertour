@@ -73,21 +73,26 @@
         @update-fps="value => fps = value"
       />
     </div>
-    <div
-      id="preview-container"
-      :style="{
-        width: `${rendererWidth}px`,
-        height: `${rendererHeight}px`,
-      }"
-      class="flex-shrink-0"
-    >
-      <video
-        v-if="displayVideo"
-        controls
-        :src="videoUrl"
-        type="video/mp4"
-        class="full-width full-height"
-      />
+    <div class="d-flex flex-column">
+      <div
+        id="preview-container"
+        :style="{
+          width: `${rendererWidth}px`,
+          height: `${rendererHeight}px`,
+        }"
+        class="flex-shrink-0 mb-3"
+      >
+        <video
+          v-if="displayVideo"
+          controls
+          :src="videoUrl"
+          type="video/mp4"
+          class="full-width full-height"
+        />
+      </div>
+      <div style="width: 0; min-width: 100%">
+        <div ref="terminal"/>
+      </div>
     </div>
   </div>
 </template>
@@ -104,11 +109,15 @@
   import { Mobject } from  "../Mobject.js";
   const Store = require('electron-store');
   import { spawn } from "child_process";
+  import { Terminal } from "xterm";
+  import { FitAddon } from "xterm-addon-fit";
 
   import { codemirror } from 'vue-codemirror'
   import 'codemirror/lib/codemirror.css'
   import 'codemirror/theme/rubyblue.css'
   import 'codemirror/mode/python/python.js'
+
+  import 'xterm/css/xterm.css'
 
   export default {
     name: "ThreeTest",
@@ -190,14 +199,6 @@
       this.workspacePath = paths.workspace;
       this.ffmpegPath = paths.ffmpeg;
 
-      this.loadCode().then(code => {
-        this.code = code;
-        return this.manimInterface.getSceneChoices(this.selectedProjectPath, this.projectFilePath);
-      }).then(sceneChoices => {
-        this.sceneChoices = sceneChoices;
-        this.chosenScene = this.sceneChoices[0];
-      });
-
       // Scene
       this.scene = new THREE.Scene();
 
@@ -220,7 +221,28 @@
       this.renderer.setSize(this.rendererWidth, this.rendererHeight, true);
       this.resizeRenderer();
 
+      // Manim
       this.manimInterface = new ManimInterface(this.manimConfig);
+
+      // Terminal
+      this.term = new Terminal();
+      const fitAddon = new FitAddon();
+      this.term.loadAddon(fitAddon);
+      this.term.open(this.$refs.terminal);
+      fitAddon.fit();
+      this.fitAddon = fitAddon;
+
+      this.loadCode().then(code => {
+        this.code = code;
+        return this.manimInterface.getSceneChoices(
+          this.selectedProjectPath,
+          this.projectFilePath,
+          this.term,
+        );
+      }).then(sceneChoices => {
+        this.sceneChoices = sceneChoices;
+        this.chosenScene = this.sceneChoices[0];
+      });
     },
     computed: {
       sceneWidth() { return this.sceneHeight * this.aspectRatio },
@@ -317,7 +339,11 @@
         this.loadCode().then(code => {
           this.code = code;
           if (this.pythonFileSelected) {
-            return this.manimInterface.getSceneChoices(this.selectedProjectPath, this.projectFilePath);
+            return this.manimInterface.getSceneChoices(
+              this.selectedProjectPath,
+              this.projectFilePath,
+              this.term,
+            );
           }
         }).then(sceneChoices => {
           if (sceneChoices) {
@@ -335,10 +361,15 @@
       },
       refreshSceneChoices() {
         this.manimInterface
-          .getSceneChoices(this.selectedProjectPath, this.projectFilePath)
+          .getSceneChoices(
+            this.selectedProjectPath,
+            this.projectFilePath,
+            this.term,
+          )
           .then(sceneChoices => this.sceneChoices = sceneChoices);
       },
       runManim() {
+        this.term.clear();
         this.clearFrameData();
         this.animating = true;
         if (this.animationAction === "preview") {
@@ -348,6 +379,7 @@
               this.projectFilePath,
               this.chosenScene,
               this.previewFps,
+              this.term,
             )
             .then(frameData => {
               this.frameData = frameData;
@@ -360,6 +392,7 @@
               this.projectFilePath,
               this.chosenScene,
               this.fps,
+              this.term,
             )
             .then(frameData => {
               this.frameData = frameData;
