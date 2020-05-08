@@ -90,8 +90,13 @@
           class="full-width full-height"
         />
       </div>
-      <div style="width: 0; min-width: 100%">
-        <div ref="terminal"/>
+      <div style="width: 0; min-width: 100%;">
+        <v-tabs v-model="tab">
+          <v-tab>
+            <v-icon color="primary">mdi-text-box</v-icon>
+          </v-tab>
+          <v-tab-item><div ref="terminal"/></v-tab-item>
+        </v-tabs>
       </div>
     </div>
   </div>
@@ -141,6 +146,7 @@
         displayVideo: false,
         fps: 30,
         outputResolution: 720,
+        tab: 0,
 
         workspacePath: '',
         projectDirectory: "projects",
@@ -226,11 +232,10 @@
 
       // Terminal
       this.term = new Terminal();
-      const fitAddon = new FitAddon();
-      this.term.loadAddon(fitAddon);
+      this.fitAddon = new FitAddon();
+      this.term.loadAddon(this.fitAddon);
       this.term.open(this.$refs.terminal);
-      fitAddon.fit();
-      this.fitAddon = fitAddon;
+      this.fitAddon.fit();
 
       this.loadCode().then(code => {
         this.code = code;
@@ -487,12 +492,8 @@
             "-pix_fmt", "yuv420p",
             this.videoFilePath,
           ]);
-        ffmpeg.stdout.on('data', data => {
-          console.log(`ffmpeg stdout: ${data}`);
-        });
-        ffmpeg.stderr.on('data', data => {
-          console.log(`ffmpeg stderr: ${data}`);
-        });
+        ffmpeg.stdout.on('data', data => this.term.writeln(data));
+        ffmpeg.stderr.on('data', data => this.term.writeln(data));
         ffmpeg.on('close', code => {
           if (code !== 0) {
             console.error(`ffmpeg exited with error code ${code}.`);
@@ -553,4 +554,5 @@
   right: 0;
   height: 100%;
 }
+.terminal { padding: 8px }
 </style>
