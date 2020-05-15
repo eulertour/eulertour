@@ -90,12 +90,14 @@
           class="full-width full-height"
         />
       </div>
-      <div style="width: 0; min-width: 100%;">
+      <div class="full-height" style="width: 0; min-width: 100%">
         <v-tabs v-model="tab">
           <v-tab>
             <v-icon color="primary">mdi-text-box</v-icon>
           </v-tab>
-          <v-tab-item><div ref="terminal"/></v-tab-item>
+          <v-tab-item>
+            <div class="full-height" ref="terminal"/>
+          </v-tab-item>
         </v-tabs>
       </div>
     </div>
@@ -192,6 +194,7 @@
         this.renderer.render(this.scene, this.camera);
       };
       window.addEventListener('resize', this.resizeAndRender);
+      window.addEventListener('resize', this.resizeTerminal);
       this.ffmpegPath = null;
     },
     mounted() {
@@ -232,10 +235,10 @@
 
       // Terminal
       this.term = new Terminal();
-      this.fitAddon = new FitAddon();
-      this.term.loadAddon(this.fitAddon);
+      this.termFitAddon = new FitAddon();
+      this.term.loadAddon(this.termFitAddon);
       this.term.open(this.$refs.terminal);
-      this.fitAddon.fit();
+      this.termFitAddon.fit();
 
       this.loadCode().then(code => {
         this.code = code;
@@ -532,6 +535,12 @@
         const height = canvas.clientHeight * pixelRatio | 0;
         this.renderer.setSize(width, height, false);
       },
+      resizeTerminal() {
+        // If the window is zoomed without shinking the terminal the parent
+        // container won't shrink.
+        this.term.resize(1, 1);
+        this.termFitAddon.fit();
+      }
     },
   }
 </script>
@@ -555,4 +564,12 @@
   height: 100%;
 }
 .terminal { padding: 8px }
+.v-tabs {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.v-tabs > .v-window { flex: 1 }
+.v-window > .v-window__container { height: 100% }
+.v-window__container > .v-window-item { height: 100% }
 </style>
