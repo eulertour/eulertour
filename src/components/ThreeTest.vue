@@ -105,7 +105,6 @@
 </template>
 
 <script>
-  /* eslint-disable */
   import * as THREE from "three";
   import * as consts from "../constants.js";
   import * as fs from "fs-extra";
@@ -516,7 +515,7 @@
         this.displayVideo = false;
         let p = Promise.resolve();
         for (let i = 0; i < this.frameData.length; i++) {
-          p = p.then(_ => new Promise(resolve => {
+          p = p.then(() => new Promise(resolve => {
             this.renderFrame(i);
             this.renderer.domElement.toBlob(blob => {
               blob.arrayBuffer().then(arr => {
@@ -526,7 +525,7 @@
             });
           }));
         }
-        p = p.then(_ => ffmpeg.stdin.destroy());
+        p = p.then(() => ffmpeg.stdin.destroy());
       },
       resizeRenderer() {
         const canvas = this.renderer.domElement;
