@@ -14,7 +14,7 @@
   "main": "background.js",
   "dependencies": {
     "@jonobr1/two.js": "https://github.com/jonobr1/two.js",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "chroma-js": "^2.1.0",
     "core-js": "^3.6.4",
     "electron-store": "^5.1.1",
